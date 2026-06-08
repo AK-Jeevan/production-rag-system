@@ -8,3 +8,12 @@ models/
 .dvc/
 data/raw/
 data/processed/
+
+# Python virtualenv
+/ragenv/
+# DVC cache and local data
+/.dvc/cache
+/dvc-storage/
+# Python bytecode
+__pycache__/
+*.pyc
