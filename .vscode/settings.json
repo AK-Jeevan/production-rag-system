@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "."
+    ],
+    "python.defaultInterpreterPath": "./ragenv/Scripts/python.exe",
+    "git.ignoreLimitWarning": true
+}

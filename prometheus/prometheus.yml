@@ -1,0 +1,38 @@
+global:
+  scrape_interval:     15s   # how often Prometheus scrapes targets
+  evaluation_interval: 15s   # how often rules are evaluated
+  scrape_timeout:      10s   # timeout per scrape request
+
+# ── Alerting ──────────────────────────────────────────────────────────────────
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []         # add alertmanager host here when configured
+
+# ── Rule Files ────────────────────────────────────────────────────────────────
+rule_files: []                # e.g. - "rules/rag_alerts.yml"
+
+# ── Scrape Configs ────────────────────────────────────────────────────────────
+scrape_configs:
+
+  # ── RAG API ───────────────────────────────────────────────────────────────
+  - job_name: "rag-api"
+    metrics_path: "/api/v1/metrics"   # matches your router prefix
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - "localhost:8000"
+        labels:
+          env:     "development"
+          service: "rag-api"
+
+  # ── Prometheus Self-Monitoring ─────────────────────────────────────────────
+  - job_name: "prometheus"
+    metrics_path: "/metrics"
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - "localhost:9090"
+        labels:
+          env:     "development"
+          service: "prometheus"
