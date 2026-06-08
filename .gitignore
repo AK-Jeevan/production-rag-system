@@ -1,19 +1,38 @@
+# ── Virtual Environment ───────────────────────────────────────────────────────
+ragenv/
 venv/
-.env
-__pycache__/
-*.pyc
-mlruns/
-models/
-*.db
-.dvc/
-data/raw/
-data/processed/
+.venv/
+env/
 
-# Python virtualenv
-/ragenv/
-# DVC cache and local data
-/.dvc/cache
-/dvc-storage/
-# Python bytecode
+# ── DVC Storage ───────────────────────────────────────────────────────────────
+dvc-storage/
+
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# ── Environment ───────────────────────────────────────────────────────────────
+.env
+*.env
+
+# ── MLflow ────────────────────────────────────────────────────────────────────
+mlflow.db
+mlruns/
+
+# ── Data & Models ─────────────────────────────────────────────────────────────
+data/raw/uploads/
+models/
+*.faiss
+*.pkl
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+*.log
