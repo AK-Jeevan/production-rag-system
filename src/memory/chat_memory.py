@@ -5,11 +5,10 @@ logger = logging.getLogger(__name__)
 
 
 class ChatMemory:
-
     VALID_ROLES = {"user", "assistant", "system"}
 
     def __init__(self, max_history: int = 20):
-        self.history     = []
+        self.history = []
         self.max_history = max_history
 
     def add_message(self, role: str, content: str) -> None:
@@ -25,7 +24,7 @@ class ChatMemory:
 
         # Trim oldest messages if over limit (keep system message if present)
         if len(self.history) > self.max_history:
-            self.history = self.history[-self.max_history:]
+            self.history = self.history[-self.max_history :]
             logger.info(f"🔁 History trimmed to last {self.max_history} messages.")
 
         logger.info(f"💬 Added [{role}] message ({len(content)} chars).")
@@ -49,7 +48,7 @@ class ChatMemory:
 
         lines = []
         for msg in self.history:
-            role    = msg["role"].capitalize()
+            role = msg["role"].capitalize()
             content = msg["content"]
             lines.append(f"{role}: {content}")
 
@@ -79,7 +78,9 @@ if __name__ == "__main__":
 
     # Add messages
     memory.add_user_message("What is FastAPI?")
-    memory.add_assistant_message("FastAPI is a modern Python web framework for building APIs.")
+    memory.add_assistant_message(
+        "FastAPI is a modern Python web framework for building APIs."
+    )
     memory.add_user_message("How does it compare to Flask?")
     memory.add_assistant_message("FastAPI is faster and supports async out of the box.")
 
@@ -87,19 +88,19 @@ if __name__ == "__main__":
     for msg in memory.get_history():
         print(f"  [{msg['role']}]: {msg['content']}")
 
-    print(f"\n--- History as Text ---")
+    print("\n--- History as Text ---")
     print(memory.get_history_as_text())
 
-    print(f"\n--- Last 2 Messages ---")
+    print("\n--- Last 2 Messages ---")
     for msg in memory.get_last_n(2):
         print(f"  [{msg['role']}]: {msg['content']}")
 
-    print(f"\n--- Stats ---")
+    print("\n--- Stats ---")
     print(f"  Total messages : {memory.message_count()}")
     print(f"  Is empty       : {memory.is_empty()}")
 
     # Clear
     memory.clear()
-    print(f"\n--- After Clear ---")
+    print("\n--- After Clear ---")
     print(f"  Total messages : {memory.message_count()}")
     print(f"  Is empty       : {memory.is_empty()}")

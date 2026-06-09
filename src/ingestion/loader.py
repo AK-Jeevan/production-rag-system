@@ -13,7 +13,7 @@ class DocumentLoader:
         ".pdf": PyPDFLoader,
         ".txt": TextLoader,
         ".docx": Docx2txtLoader,
-        ".md": TextLoader,                      # lightweight, no extra deps
+        ".md": TextLoader,  # lightweight, no extra deps
     }
 
     # extensions that need encoding="utf-8"

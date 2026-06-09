@@ -25,10 +25,10 @@ def run_similarity_search(query: str, top_k: int = 3) -> list:
     results = vector_store.similarity_search(query, k=top_k)
 
     # --- Step 4: Display ---
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"  Query  : {query}")
     print(f"  Top K  : {top_k}")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
     if not results:
         print("⚠️  No results found.")
@@ -43,9 +43,7 @@ def run_similarity_search(query: str, top_k: int = 3) -> list:
 
 
 if __name__ == "__main__":
-    queries = [
-        "What is FastAPI?"
-    ]
+    queries = ["What is FastAPI?"]
 
     for query in queries:
         run_similarity_search(query=query, top_k=3)

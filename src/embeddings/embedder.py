@@ -6,25 +6,24 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingGenerator:
-
     AVAILABLE_MODELS = {
-        "txtsmall"     : "text-embedding-3-small",                   # OpenAI's text embedding
-        "minilm"  : "sentence-transformers/all-MiniLM-L6-v2",    # fast, lightweight
-        "mpnet"   : "sentence-transformers/all-mpnet-base-v2",    # better quality
-        "bge"     : "BAAI/bge-base-en-v1.5",                      # best for RAG
+        "txtsmall": "text-embedding-3-small",  # OpenAI's text embedding
+        "minilm": "sentence-transformers/all-MiniLM-L6-v2",  # fast, lightweight
+        "mpnet": "sentence-transformers/all-mpnet-base-v2",  # better quality
+        "bge": "BAAI/bge-base-en-v1.5",  # best for RAG
     }
 
     def __init__(self, model_key: str = "minilm", device: str = "cpu"):
-        self.model_key  = model_key
-        self.device     = device
+        self.model_key = model_key
+        self.device = device
         self.model_name = self.AVAILABLE_MODELS.get(model_key, model_key)
 
         logger.info(f"🔄 Loading embedding model: {self.model_name}")
 
         self.embedding_model = HuggingFaceEmbeddings(
-            model_name      = self.model_name,
-            model_kwargs    = {"device": self.device},
-            encode_kwargs   = {"normalize_embeddings": True},
+            model_name=self.model_name,
+            model_kwargs={"device": self.device},
+            encode_kwargs={"normalize_embeddings": True},
         )
 
         logger.info(f"✅ Embedding model loaded: {self.model_name} on {self.device}")
@@ -65,7 +64,7 @@ class EmbeddingGenerator:
 if __name__ == "__main__":
     generator = EmbeddingGenerator(model_key="minilm", device="cpu")
 
-    print(f"\n--- Embedding Model Info ---")
+    print("\n--- Embedding Model Info ---")
     print(f"Model name : {generator.get_model_name()}")
     print(f"Dimension  : {generator.get_embedding_dimension()}")
 
@@ -75,10 +74,10 @@ if __name__ == "__main__":
     print(f"First 5 dims: {vector[:5]}")
 
     # Multiple texts
-    texts   = ["LangChain is a framework.", "FastAPI is a web framework."]
+    texts = ["LangChain is a framework.", "FastAPI is a web framework."]
     vectors = generator.embed_documents(texts)
     print(f"\nEmbedded {len(vectors)} documents.")
 
-    print(f"\n--- Available Models ---")
+    print("\n--- Available Models ---")
     for key, name in EmbeddingGenerator.list_available_models().items():
         print(f"  {key:8} → {name}")

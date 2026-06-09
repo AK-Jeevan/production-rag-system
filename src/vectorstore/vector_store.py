@@ -7,10 +7,9 @@ logger = logging.getLogger(__name__)
 
 
 class VectorStoreManager:
-
     def __init__(self, embedding_model, index_path: str = "models/faiss_index"):
         self.embedding_model = embedding_model
-        self.index_path      = index_path
+        self.index_path = index_path
 
     def create_vector_store(self, chunks: list) -> FAISS:
         """Create a FAISS vector store from document chunks."""
@@ -20,8 +19,7 @@ class VectorStoreManager:
         logger.info(f"🔄 Creating FAISS vector store from {len(chunks)} chunks...")
 
         vector_store = FAISS.from_documents(
-            documents = chunks,
-            embedding = self.embedding_model
+            documents=chunks, embedding=self.embedding_model
         )
 
         logger.info(f"✅ Vector store created with {len(chunks)} vectors.")
@@ -44,9 +42,7 @@ class VectorStoreManager:
         logger.info(f"📂 Loading FAISS index from: {self.index_path}")
 
         vector_store = FAISS.load_local(
-            self.index_path,
-            self.embedding_model,
-            allow_dangerous_deserialization=True
+            self.index_path, self.embedding_model, allow_dangerous_deserialization=True
         )
 
         logger.info("✅ Vector store loaded successfully.")
@@ -78,7 +74,9 @@ class VectorStoreManager:
         logger.info("✅ New chunks added and index saved.")
         return vector_store
 
-    def similarity_search(self, vector_store: FAISS, query: str, top_k: int = 5) -> list:
+    def similarity_search(
+        self, vector_store: FAISS, query: str, top_k: int = 5
+    ) -> list:
         """Run a similarity search and return top_k results."""
         if not query:
             raise ValueError("❌ Query string is empty.")
@@ -94,20 +92,36 @@ if __name__ == "__main__":
     from src.embeddings.embedder import EmbeddingGenerator
 
     # Load embedding model
-    generator    = EmbeddingGenerator(model_key="minilm", device="cpu")
-    embedding    = generator.get_embedding_model()
+    generator = EmbeddingGenerator(model_key="minilm", device="cpu")
+    embedding = generator.get_embedding_model()
 
     # Init manager
     manager = VectorStoreManager(embedding_model=embedding)
 
     # Create dummy chunks
     from langchain_core.documents import Document
+
     chunks = [
-        Document(page_content="LangChain is a framework for LLM applications.", metadata={"source": "langchain.md"}),
-        Document(page_content="FastAPI is a modern Python web framework.",        metadata={"source": "fastapi.md"}),
-        Document(page_content="FAISS is a library for efficient similarity search.", metadata={"source": "faiss.md"}),
-        Document(page_content="MLflow tracks machine learning experiments.",       metadata={"source": "mlflow.md"}),
-        Document(page_content="DVC is used for data version control in ML.",       metadata={"source": "dvc.md"}),
+        Document(
+            page_content="LangChain is a framework for LLM applications.",
+            metadata={"source": "langchain.md"},
+        ),
+        Document(
+            page_content="FastAPI is a modern Python web framework.",
+            metadata={"source": "fastapi.md"},
+        ),
+        Document(
+            page_content="FAISS is a library for efficient similarity search.",
+            metadata={"source": "faiss.md"},
+        ),
+        Document(
+            page_content="MLflow tracks machine learning experiments.",
+            metadata={"source": "mlflow.md"},
+        ),
+        Document(
+            page_content="DVC is used for data version control in ML.",
+            metadata={"source": "dvc.md"},
+        ),
     ]
 
     # Create and save
@@ -115,7 +129,7 @@ if __name__ == "__main__":
 
     # Search
     results = manager.similarity_search(vs, query="What is LangChain?", top_k=2)
-    print(f"\n--- Search Results ---")
+    print("\n--- Search Results ---")
     for i, doc in enumerate(results):
-        print(f"\n[{i+1}] Source : {doc.metadata.get('source')}")
+        print(f"\n[{i + 1}] Source : {doc.metadata.get('source')}")
         print(f"     Content: {doc.page_content}")

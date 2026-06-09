@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
+
 class FeedbackRequest(BaseModel):
     question: str = Field(..., min_length=1, description="The question being rated")
     answer: str = Field(..., min_length=1, description="The answer provided")

@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -16,8 +15,8 @@ def test_health_response_fields():
     data = response.json()
     assert data["status"] == "healthy"
     assert "timestamp" in data
-    assert "service"   in data
-    assert "version"   in data
+    assert "service" in data
+    assert "version" in data
 
 
 def test_health_service_name():
@@ -42,20 +41,26 @@ def test_query_empty_question():
 
 
 def test_query_invalid_top_k_zero():
-    response = client.post("/api/v1/query", json={"question": "What is RAG?", "top_k": 0})
+    response = client.post(
+        "/api/v1/query", json={"question": "What is RAG?", "top_k": 0}
+    )
     assert response.status_code == 422
 
 
 def test_query_invalid_top_k_exceeded():
-    response = client.post("/api/v1/query", json={"question": "What is RAG?", "top_k": 999})
+    response = client.post(
+        "/api/v1/query", json={"question": "What is RAG?", "top_k": 999}
+    )
     assert response.status_code == 422
 
 
 def test_query_response_fields():
-    response = client.post("/api/v1/query", json={"question": "What is RAG?", "top_k": 5})
+    response = client.post(
+        "/api/v1/query", json={"question": "What is RAG?", "top_k": 5}
+    )
     if response.status_code == 200:
         data = response.json()
-        assert "answer"  in data
+        assert "answer" in data
         assert "sources" in data
 
 
@@ -68,15 +73,14 @@ def test_upload_no_file():
 def test_upload_invalid_extension():
     response = client.post(
         "/api/v1/upload",
-        files={"file": ("malicious.exe", b"fake content", "application/octet-stream")}
+        files={"file": ("malicious.exe", b"fake content", "application/octet-stream")},
     )
     assert response.status_code == 415
 
 
 def test_upload_empty_file():
     response = client.post(
-        "/api/v1/upload",
-        files={"file": ("empty.pdf", b"", "application/pdf")}
+        "/api/v1/upload", files={"file": ("empty.pdf", b"", "application/pdf")}
     )
     assert response.status_code == 400
 
@@ -84,13 +88,13 @@ def test_upload_empty_file():
 def test_upload_valid_pdf():
     response = client.post(
         "/api/v1/upload",
-        files={"file": ("test.pdf", b"%PDF-1.4 fake content", "application/pdf")}
+        files={"file": ("test.pdf", b"%PDF-1.4 fake content", "application/pdf")},
     )
     if response.status_code == 201:
         data = response.json()
-        assert "filename"   in data
-        assert "saved_as"   in data
-        assert "size_kb"    in data
+        assert "filename" in data
+        assert "saved_as" in data
+        assert "size_kb" in data
         assert "uploaded_at" in data
 
 
@@ -103,7 +107,7 @@ def test_feedback_missing_fields():
 def test_feedback_invalid_rating_too_low():
     response = client.post(
         "/api/v1/feedback",
-        json={"question": "What is RAG?", "answer": "RAG is...", "rating": 0}
+        json={"question": "What is RAG?", "answer": "RAG is...", "rating": 0},
     )
     assert response.status_code == 422
 
@@ -111,7 +115,7 @@ def test_feedback_invalid_rating_too_low():
 def test_feedback_invalid_rating_too_high():
     response = client.post(
         "/api/v1/feedback",
-        json={"question": "What is RAG?", "answer": "RAG is...", "rating": 6}
+        json={"question": "What is RAG?", "answer": "RAG is...", "rating": 6},
     )
     assert response.status_code == 422
 
@@ -119,7 +123,7 @@ def test_feedback_invalid_rating_too_high():
 def test_feedback_valid():
     response = client.post(
         "/api/v1/feedback",
-        json={"question": "What is RAG?", "answer": "RAG is...", "rating": 5}
+        json={"question": "What is RAG?", "answer": "RAG is...", "rating": 5},
     )
     if response.status_code == 201:
         data = response.json()

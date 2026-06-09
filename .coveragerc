@@ -1,0 +1,17 @@
+[coverage:run]
+omit =
+    */test_*.py                         # test files inside src/
+    src/pipelines/test_mlflow_rag.py
+    src/pipelines/test_rag.py
+    src/retrieval/test_search.py
+    src/pipelines/embedding_pipeline.py
+    src/pipelines/ingest_pipeline.py
+    src/pipelines/upload_pipeline.py
+    */ragenv/*                          # virtualenv
+    */__pycache__/*
+
+[coverage:report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError

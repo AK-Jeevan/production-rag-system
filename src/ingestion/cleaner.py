@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 
 
 class TextCleaner:
-
     @staticmethod
     def clean_text(text: str) -> str:
         """Clean a single text string."""
@@ -69,11 +68,24 @@ if __name__ == "__main__":
     from langchain_core.documents import Document
 
     sample_docs = [
-        Document(page_content="  Hello   world!\n\nThis is   a test.  ", metadata={"source": "test.txt"}),
-        Document(page_content="Visit https://example.com for more info.", metadata={"source": "web.md"}),
-        Document(page_content="Contact us at hello@example.com today.", metadata={"source": "email.txt"}),
-        Document(page_content="   ", metadata={"source": "empty.txt"}),           # should be skipped
-        Document(page_content="Hi", metadata={"source": "short.txt"}),            # should be skipped
+        Document(
+            page_content="  Hello   world!\n\nThis is   a test.  ",
+            metadata={"source": "test.txt"},
+        ),
+        Document(
+            page_content="Visit https://example.com for more info.",
+            metadata={"source": "web.md"},
+        ),
+        Document(
+            page_content="Contact us at hello@example.com today.",
+            metadata={"source": "email.txt"},
+        ),
+        Document(
+            page_content="   ", metadata={"source": "empty.txt"}
+        ),  # should be skipped
+        Document(
+            page_content="Hi", metadata={"source": "short.txt"}
+        ),  # should be skipped
     ]
 
     cleaner = TextCleaner()

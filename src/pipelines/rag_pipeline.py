@@ -14,28 +14,24 @@ logger = logging.getLogger(__name__)
 
 
 class RAGPipeline:
-
     def __init__(
         self,
-        retrieval_top_k: int   = 20,
-        rerank_top_k   : int   = 5,
-        model_key      : str   = "flash25",
-        temperature    : float = 0.7
+        retrieval_top_k: int = 20,
+        rerank_top_k: int = 5,
+        model_key: str = "flash25",
+        temperature: float = 0.7,
     ):
         self.retrieval_top_k = retrieval_top_k
-        self.rerank_top_k    = rerank_top_k
+        self.rerank_top_k = rerank_top_k
 
         logger.info("🚀 Initializing RAG Pipeline...")
 
         self.retriever = Retriever(top_k=retrieval_top_k)
-        self.reranker  = Reranker(top_k=rerank_top_k)
-        self.generator = GeminiGenerator(
-            model_key   = model_key,
-            temperature = temperature
-        )
-        self.rewriter  = QueryRewriter()
-        self.memory    = ChatMemory(max_history=20)
-        self.tracker   = MLflowTracker()
+        self.reranker = Reranker(top_k=rerank_top_k)
+        self.generator = GeminiGenerator(model_key=model_key, temperature=temperature)
+        self.rewriter = QueryRewriter()
+        self.memory = ChatMemory(max_history=20)
+        self.tracker = MLflowTracker()
 
         logger.info("✅ RAG Pipeline ready.")
 
@@ -47,24 +43,19 @@ class RAGPipeline:
         logger.info(f"❓ Question: {question}")
 
         with self.tracker.start_run("rag_query"):
-
             # --- Step 0: Rewrite query using memory ---
             logger.info("✏️  Step 0: Rewriting query...")
-            history_text    = self.memory.get_history_as_text()
+            history_text = self.memory.get_history_as_text()
             rewritten_query = self.rewriter.rewrite(
-                question = question,
-                history  = history_text
+                question=question, history=history_text
             )
             logger.info(f"   Original : {question}")
             logger.info(f"   Rewritten: {rewritten_query}")
 
             # --- Step 1: Retrieve Top 20 ---
             logger.info(f"🔍 Step 1: Retrieving top {self.retrieval_top_k} chunks...")
-            retrieval_start   = time.time()
-            docs              = self.retriever.retrieve(
-                rewritten_query,
-                top_k = self.retrieval_top_k
-            )
+            retrieval_start = time.time()
+            docs = self.retriever.retrieve(rewritten_query, top_k=self.retrieval_top_k)
             retrieval_latency = round(time.time() - retrieval_start, 4)
 
             if not docs:
@@ -72,26 +63,23 @@ class RAGPipeline:
 
             # --- Step 2: Rerank to Top 5 ---
             logger.info(f"🔀 Step 2: Reranking to top {self.rerank_top_k} chunks...")
-            rerank_start   = time.time()
-            reranked_docs  = self.reranker.rerank(
-                rewritten_query,
-                docs,
-                top_k = self.rerank_top_k
+            rerank_start = time.time()
+            reranked_docs = self.reranker.rerank(
+                rewritten_query, docs, top_k=self.rerank_top_k
             )
             rerank_latency = round(time.time() - rerank_start, 4)
 
             # --- Step 3: Build prompt ---
             logger.info("📝 Step 3: Building prompt...")
-            prompt       = PromptBuilder.build_prompt(
-                query          = rewritten_query,
-                retrieved_docs = reranked_docs
+            prompt = PromptBuilder.build_prompt(
+                query=rewritten_query, retrieved_docs=reranked_docs
             )
             prompt_stats = PromptBuilder.get_prompt_stats(prompt)
 
             # --- Step 4: Generate ---
             logger.info("🤖 Step 4: Generating answer...")
-            generation_start   = time.time()
-            answer             = self.generator.generate_answer(prompt)
+            generation_start = time.time()
+            answer = self.generator.generate_answer(prompt)
             generation_latency = round(time.time() - generation_start, 4)
 
             total_latency = round(
@@ -99,50 +87,48 @@ class RAGPipeline:
             )
 
             # --- Step 5: Extract sources ---
-            sources = list({
-                doc.metadata.get("source", "unknown")
-                for doc in reranked_docs
-            })
+            sources = list(
+                {doc.metadata.get("source", "unknown") for doc in reranked_docs}
+            )
 
             # --- Step 6: Update memory ---
             self.memory.add_user_message(question)
             self.memory.add_assistant_message(answer)
 
             # --- Step 7: Calculate tokens + cost ---
-            input_tokens  = prompt_stats["approx_tokens"]
+            input_tokens = prompt_stats["approx_tokens"]
             output_tokens = len(answer) // 4
-            total_tokens  = input_tokens + output_tokens
+            total_tokens = input_tokens + output_tokens
 
             estimated_cost = round(
-                (input_tokens  / 1_000_000) * 0.075 +
-                (output_tokens / 1_000_000) * 0.30,
-                6
+                (input_tokens / 1_000_000) * 0.075 + (output_tokens / 1_000_000) * 0.30,
+                6,
             )
 
             # --- Step 8: Track metrics ---
             logger.info("📊 Step 8: Logging metrics to MLflow...")
             self.tracker.log_rag_parameters(
-                chunk_size      = 1000,
-                chunk_overlap   = 200,
-                embedding_model = "sentence-transformers/all-MiniLM-L6-v2",
-                top_k           = self.rerank_top_k,
-                vector_db       = "FAISS",
-                llm_model       = self.generator.get_model_name()
+                chunk_size=1000,
+                chunk_overlap=200,
+                embedding_model="sentence-transformers/all-MiniLM-L6-v2",
+                top_k=self.rerank_top_k,
+                vector_db="FAISS",
+                llm_model=self.generator.get_model_name(),
             )
             self.tracker.log_latency_metrics(
-                retrieval_latency  = retrieval_latency,
-                generation_latency = generation_latency,
-                total_latency      = total_latency
+                retrieval_latency=retrieval_latency,
+                generation_latency=generation_latency,
+                total_latency=total_latency,
             )
-            self.tracker.log_metric("docs_retrieved",  len(docs))
-            self.tracker.log_metric("docs_reranked",   len(reranked_docs))
-            self.tracker.log_metric("rerank_latency",  rerank_latency)
-            self.tracker.log_metric("prompt_tokens",   prompt_stats["approx_tokens"])
+            self.tracker.log_metric("docs_retrieved", len(docs))
+            self.tracker.log_metric("docs_reranked", len(reranked_docs))
+            self.tracker.log_metric("rerank_latency", rerank_latency)
+            self.tracker.log_metric("prompt_tokens", prompt_stats["approx_tokens"])
             self.tracker.log_metric("memory_messages", self.memory.message_count())
-            self.tracker.log_metric("input_tokens",    input_tokens)
-            self.tracker.log_metric("output_tokens",   output_tokens)
-            self.tracker.log_metric("total_tokens",    total_tokens)
-            self.tracker.log_metric("estimated_cost",  estimated_cost)
+            self.tracker.log_metric("input_tokens", input_tokens)
+            self.tracker.log_metric("output_tokens", output_tokens)
+            self.tracker.log_metric("total_tokens", total_tokens)
+            self.tracker.log_metric("estimated_cost", estimated_cost)
 
             # --- Summary ---
             logger.info("✅ RAG Pipeline complete.")
@@ -160,21 +146,21 @@ class RAGPipeline:
             logger.info(f"   Memory     : {self.memory.message_count()} messages")
 
             return {
-                "question"          : question,
-                "rewritten_query"   : rewritten_query,
-                "answer"            : answer,
-                "sources"           : sources,
-                "retrieved_docs"    : reranked_docs,
-                "retrieval_latency" : retrieval_latency,
-                "rerank_latency"    : rerank_latency,
+                "question": question,
+                "rewritten_query": rewritten_query,
+                "answer": answer,
+                "sources": sources,
+                "retrieved_docs": reranked_docs,
+                "retrieval_latency": retrieval_latency,
+                "rerank_latency": rerank_latency,
                 "generation_latency": generation_latency,
-                "total_latency"     : total_latency,
-                "prompt_tokens"     : prompt_stats["approx_tokens"],
-                "input_tokens"      : input_tokens,
-                "output_tokens"     : output_tokens,
-                "total_tokens"      : total_tokens,
-                "estimated_cost"    : estimated_cost,
-                "memory_messages"   : self.memory.message_count(),
+                "total_latency": total_latency,
+                "prompt_tokens": prompt_stats["approx_tokens"],
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": total_tokens,
+                "estimated_cost": estimated_cost,
+                "memory_messages": self.memory.message_count(),
             }
 
     def ask_stream(self, question: str) -> Generator[str, None, None]:
@@ -185,32 +171,23 @@ class RAGPipeline:
         logger.info(f"🌊 Stream query: {question!r}")
 
         # Step 0: Rewrite query using memory
-        history_text    = self.memory.get_history_as_text()
-        rewritten_query = self.rewriter.rewrite(
-            question = question,
-            history  = history_text
-        )
+        history_text = self.memory.get_history_as_text()
+        rewritten_query = self.rewriter.rewrite(question=question, history=history_text)
         logger.info(f"   Rewritten: {rewritten_query}")
 
         # Step 1: Retrieve
-        docs = self.retriever.retrieve(
-            rewritten_query,
-            top_k = self.retrieval_top_k
-        )
+        docs = self.retriever.retrieve(rewritten_query, top_k=self.retrieval_top_k)
         if not docs:
             logger.warning("⚠️  No documents retrieved for stream query.")
 
         # Step 2: Rerank
         reranked_docs = self.reranker.rerank(
-            rewritten_query,
-            docs,
-            top_k = self.rerank_top_k
+            rewritten_query, docs, top_k=self.rerank_top_k
         )
 
         # Step 3: Build prompt
         prompt = PromptBuilder.build_prompt(
-            query          = rewritten_query,
-            retrieved_docs = reranked_docs
+            query=rewritten_query, retrieved_docs=reranked_docs
         )
 
         # Step 4: Stream answer
@@ -234,10 +211,7 @@ class RAGPipeline:
 # ── Test ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     pipeline = RAGPipeline(
-        retrieval_top_k = 20,
-        rerank_top_k    = 5,
-        model_key       = "flash25",
-        temperature     = 0.7
+        retrieval_top_k=20, rerank_top_k=5, model_key="flash25", temperature=0.7
     )
 
     questions = [
@@ -247,7 +221,7 @@ if __name__ == "__main__":
     ]
 
     for question in questions:
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         result = pipeline.ask(question)
         print(f"❓ Question       : {result['question']}")
         print(f"✏️  Rewritten      : {result['rewritten_query']}")
@@ -257,12 +231,12 @@ if __name__ == "__main__":
         print(f"🔢 Total Tokens   : {result['total_tokens']}")
         print(f"💰 Estimated Cost : ${result['estimated_cost']}")
         print(f"🧠 Memory         : {result['memory_messages']} messages")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
     # Streaming test
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("🌊 Streaming Test:")
     print("Streaming: ", end="", flush=True)
     for chunk in pipeline.ask_stream("What is FastAPI?"):
         print(chunk, end="", flush=True)
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")

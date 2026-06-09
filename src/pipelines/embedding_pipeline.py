@@ -14,8 +14,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-CHUNKS_PATH   = "data/processed/chunks.json"
-CHUNK_SIZE    = 1000
+CHUNKS_PATH = "data/processed/chunks.json"
+CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
 
@@ -34,10 +34,7 @@ def load_chunks() -> list:
         raise ValueError("❌ Chunks file is empty.")
 
     chunks = [
-        Document(
-            page_content = item["content"],
-            metadata     = item["metadata"]
-        )
+        Document(page_content=item["content"], metadata=item["metadata"])
         for item in data
     ]
 
@@ -52,7 +49,6 @@ def run_embedding_pipeline() -> None:
     tracker = MLflowTracker()
 
     with tracker.start_run("embedding_pipeline"):
-
         # --- Step 1: Load chunks ---
         logger.info("📂 Step 1: Loading chunks...")
         chunks = load_chunks()
@@ -62,28 +58,28 @@ def run_embedding_pipeline() -> None:
         embedder = EmbeddingGenerator(model_key="minilm", device="cpu")
 
         tracker.log_rag_parameters(
-            chunk_size      = CHUNK_SIZE,
-            chunk_overlap   = CHUNK_OVERLAP,
-            embedding_model = embedder.get_model_name(),
-            top_k           = 0,
-            vector_db       = "FAISS + BM25",
-            llm_model       = "not_yet_set"
+            chunk_size=CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP,
+            embedding_model=embedder.get_model_name(),
+            top_k=0,
+            vector_db="FAISS + BM25",
+            llm_model="not_yet_set",
         )
 
         # --- Step 3: Create FAISS vector store ---
         logger.info("🔢 Step 3: Embedding chunks and creating FAISS index...")
         vector_store_manager = VectorStoreManager(
-            embedding_model = embedder.get_embedding_model()
+            embedding_model=embedder.get_embedding_model()
         )
 
-        embedding_start   = time.time()
-        vector_store      = vector_store_manager.create_vector_store(chunks)
+        embedding_start = time.time()
+        vector_store = vector_store_manager.create_vector_store(chunks)
         embedding_latency = round(time.time() - embedding_start, 4)
 
         # --- Step 4: Save FAISS index ---
         logger.info("💾 Step 4: Saving FAISS index...")
         vector_store_manager.save_vector_store(vector_store)
-        logger.info(f"   FAISS index saved to : models/faiss_index")
+        logger.info("   FAISS index saved to : models/faiss_index")
 
         # --- Step 4b: Build and save BM25 index ---
         logger.info("📦 Step 4b: Building BM25 index...")
@@ -94,15 +90,15 @@ def run_embedding_pipeline() -> None:
         bm25.save()
 
         bm25_latency = round(time.time() - bm25_start, 4)
-        logger.info(f"   BM25 index saved to  : models/bm25_index")
+        logger.info("   BM25 index saved to  : models/bm25_index")
 
         # --- Step 5: Track metrics ---
         logger.info("📊 Step 5: Logging metrics to MLflow...")
-        tracker.log_metric("chunks_embedded",   len(chunks))
+        tracker.log_metric("chunks_embedded", len(chunks))
         tracker.log_metric("embedding_latency", embedding_latency)
-        tracker.log_metric("embedding_dim",     embedder.get_embedding_dimension())
-        tracker.log_metric("bm25_latency",      bm25_latency)
-        tracker.log_metric("bm25_index_built",  1)
+        tracker.log_metric("embedding_dim", embedder.get_embedding_dimension())
+        tracker.log_metric("bm25_latency", bm25_latency)
+        tracker.log_metric("bm25_index_built", 1)
 
         # --- Summary ---
         logger.info("✅ Embedding pipeline complete.")
@@ -110,8 +106,8 @@ def run_embedding_pipeline() -> None:
         logger.info(f"   Embedding latency : {embedding_latency}s")
         logger.info(f"   Embedding dim     : {embedder.get_embedding_dimension()}")
         logger.info(f"   BM25 latency      : {bm25_latency}s")
-        logger.info(f"   FAISS index       : models/faiss_index")
-        logger.info(f"   BM25  index       : models/bm25_index")
+        logger.info("   FAISS index       : models/faiss_index")
+        logger.info("   BM25  index       : models/bm25_index")
         logger.info("   Check http://127.0.0.1:5000 for MLflow run.")
 
 

@@ -17,7 +17,6 @@ genai.configure(api_key=api_key)
 
 
 class QueryRewriter:
-
     REWRITE_TEMPLATE = """You are an expert at reformulating search queries to \
 improve document retrieval.
 
@@ -52,12 +51,12 @@ EXPANDED QUESTIONS:"""
 
     def __init__(self, model_name: str = "gemini-2.0-flash"):
         self.model_name = model_name
-        self.model      = genai.GenerativeModel(
-            model_name        = self.model_name,
-            generation_config = genai.GenerationConfig(
-                temperature       = 0.3,       # low temp for focused rewrites
-                max_output_tokens = 256,
-            )
+        self.model = genai.GenerativeModel(
+            model_name=self.model_name,
+            generation_config=genai.GenerationConfig(
+                temperature=0.3,  # low temp for focused rewrites
+                max_output_tokens=256,
+            ),
         )
         logger.info(f"✅ QueryRewriter loaded: {self.model_name}")
 
@@ -68,22 +67,19 @@ EXPANDED QUESTIONS:"""
 
         history_text = history if history else "No prior conversation."
 
-        prompt   = self.REWRITE_TEMPLATE.format(
-            history  = history_text,
-            question = question
-        )
+        prompt = self.REWRITE_TEMPLATE.format(history=history_text, question=question)
 
         try:
-            response       = self.model.generate_content(prompt)
-            rewritten      = response.text.strip()
-            logger.info(f"✅ Query rewritten.")
+            response = self.model.generate_content(prompt)
+            rewritten = response.text.strip()
+            logger.info("✅ Query rewritten.")
             logger.info(f"   Original : {question}")
             logger.info(f"   Rewritten: {rewritten}")
             return rewritten
 
         except Exception as e:
             logger.error(f"❌ Query rewrite failed: {e}. Using original query.")
-            return question                    # fallback to original on error
+            return question  # fallback to original on error
 
     def expand(self, question: str, n: int = 3) -> list:
         """Generate n alternative versions of the query for better retrieval."""
@@ -93,13 +89,9 @@ EXPANDED QUESTIONS:"""
         prompt = self.EXPAND_TEMPLATE.format(question=question, n=n)
 
         try:
-            response   = self.model.generate_content(prompt)
-            raw        = response.text.strip()
-            expansions = [
-                line.strip()
-                for line in raw.splitlines()
-                if line.strip()
-            ][:n]
+            response = self.model.generate_content(prompt)
+            raw = response.text.strip()
+            expansions = [line.strip() for line in raw.splitlines() if line.strip()][:n]
 
             # Always include original
             all_queries = [question] + expansions
@@ -112,16 +104,11 @@ EXPANDED QUESTIONS:"""
 
         except Exception as e:
             logger.error(f"❌ Query expansion failed: {e}. Using original query.")
-            return [question]                  # fallback to original on error
+            return [question]  # fallback to original on error
 
-    def rewrite_and_expand(
-        self,
-        question: str,
-        history : str = "",
-        n       : int = 3
-    ) -> list:
+    def rewrite_and_expand(self, question: str, history: str = "", n: int = 3) -> list:
         """Rewrite query using history, then expand into n versions."""
-        rewritten   = self.rewrite(question, history)
+        rewritten = self.rewrite(question, history)
         all_queries = self.expand(rewritten, n=n)
         return all_queries
 
@@ -133,26 +120,23 @@ if __name__ == "__main__":
     # Basic rewrite
     print("\n--- Basic Rewrite ---")
     rewritten = rewriter.rewrite(
-        question = "How do I use it?",
-        history  = "User: What is FastAPI?\nAssistant: FastAPI is a Python web framework."
+        question="How do I use it?",
+        history="User: What is FastAPI?\nAssistant: FastAPI is a Python web framework.",
     )
     print(f"Rewritten: {rewritten}")
 
     # Expand
     print("\n--- Query Expansion ---")
-    expansions = rewriter.expand(
-        question = "What is MLflow used for?",
-        n        = 3
-    )
+    expansions = rewriter.expand(question="What is MLflow used for?", n=3)
     for i, q in enumerate(expansions):
         print(f"  [{i}] {q}")
 
     # Rewrite + Expand
     print("\n--- Rewrite + Expand ---")
     all_queries = rewriter.rewrite_and_expand(
-        question = "How does it track experiments?",
-        history  = "User: What is MLflow?\nAssistant: MLflow is an ML lifecycle platform.",
-        n        = 3
+        question="How does it track experiments?",
+        history="User: What is MLflow?\nAssistant: MLflow is an ML lifecycle platform.",
+        n=3,
     )
     for i, q in enumerate(all_queries):
         print(f"  [{i}] {q}")

@@ -1,9 +1,7 @@
-import pytest
 from src.memory.chat_memory import ChatMemory
 
 
 class TestChatMemory:
-
     def test_add_and_retrieve_messages(self):
         memory = ChatMemory(max_history=10)
         memory.add_user_message("Hello")
@@ -31,6 +29,6 @@ class TestChatMemory:
         assert len(history) > 0
 
     def test_empty_memory_history_is_empty_string(self):
-        memory  = ChatMemory(max_history=10)
+        memory = ChatMemory(max_history=10)
         history = memory.get_history_as_text()
-        assert history == "" or isinstance(history, str)
+        assert history == "No conversation history."

@@ -30,11 +30,7 @@ def run_interactive() -> None:
     logger.info("🚀 Starting RAG Assistant...")
 
     try:
-        rag = RAGPipeline(
-            top_k       = 5,
-            model_key   = "flash25",
-            temperature = 0.7
-        )
+        rag = RAGPipeline(top_k=5, model_key="flash25", temperature=0.7)
     except Exception as e:
         logger.error(f"❌ Failed to initialize RAG Pipeline: {e}")
         sys.exit(1)

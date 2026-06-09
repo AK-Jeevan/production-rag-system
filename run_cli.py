@@ -3,8 +3,7 @@ import logging
 from src.pipelines.rag_pipeline import RAGPipeline
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ def print_response(result: dict) -> None:
     print_separator("-")
     print(f"💬 Answer            :\n\n{result.get('answer', 'N/A')}")
     print_separator("-")
-    print(f"📚 Sources           :")
+    print("📚 Sources           :")
     for source in result.get("sources", []):
         print(f"   • {source}")
     print_separator("-")
@@ -42,10 +41,7 @@ def run_interactive() -> None:
 
     try:
         rag = RAGPipeline(
-            retrieval_top_k=20,
-            rerank_top_k=5,
-            model_key="flash25",
-            temperature=0.7
+            retrieval_top_k=20, rerank_top_k=5, model_key="flash25", temperature=0.7
         )
         logger.info("✅ RAG Pipeline initialized successfully.")
     except Exception as e:

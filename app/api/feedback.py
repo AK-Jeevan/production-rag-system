@@ -12,6 +12,7 @@ router = APIRouter()
 
 FEEDBACK_FILE = "data/feedback/feedback.json"
 
+
 class FeedbackResponse(BaseModel):
     message: str
     feedback_id: str
@@ -36,11 +37,12 @@ async def save_feedback(
     feedback_entry = {
         "feedback_id": feedback_id,
         "received_at": received_at,
-        **feedback.model_dump()
+        **feedback.model_dump(),
     }
 
     # Ensure directory exists
     import os
+
     os.makedirs(os.path.dirname(FEEDBACK_FILE), exist_ok=True)
 
     try:
@@ -52,11 +54,11 @@ async def save_feedback(
         logger.error(f"❌ Failed to save feedback: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to save feedback. Please try again."
+            detail="Failed to save feedback. Please try again.",
         )
 
     return FeedbackResponse(
         message="Feedback saved successfully.",
         feedback_id=feedback_id,
-        received_at=received_at
+        received_at=received_at,
     )

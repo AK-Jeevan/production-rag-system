@@ -18,24 +18,23 @@ genai.configure(api_key=api_key)
 
 
 class GeminiGenerator:
-
     AVAILABLE_MODELS = {
-        "flash"  : "gemini-2.0-flash",
+        "flash": "gemini-2.0-flash",
         "flash25": "gemini-2.5-flash",
-        "pro"    : "gemini-1.5-pro",
+        "pro": "gemini-1.5-pro",
     }
 
     def __init__(self, model_key: str = "flash25", temperature: float = 0.7):
-        self.model_key   = model_key
-        self.model_name  = self.AVAILABLE_MODELS.get(model_key, model_key)
+        self.model_key = model_key
+        self.model_name = self.AVAILABLE_MODELS.get(model_key, model_key)
         self.temperature = temperature
 
         self.model = genai.GenerativeModel(
-            model_name        = self.model_name,
-            generation_config = genai.GenerationConfig(
-                temperature       = self.temperature,
-                max_output_tokens = 1024,
-            )
+            model_name=self.model_name,
+            generation_config=genai.GenerationConfig(
+                temperature=self.temperature,
+                max_output_tokens=1024,
+            ),
         )
 
         logger.info(f"✅ Gemini model loaded: {self.model_name}")
@@ -49,7 +48,7 @@ class GeminiGenerator:
 
         try:
             response = self.model.generate_content(prompt)
-            answer   = response.text
+            answer = response.text
             logger.info(f"✅ Answer generated ({len(answer)} chars).")
             return answer
 
@@ -105,30 +104,30 @@ Answer:"""
 if __name__ == "__main__":
     generator = GeminiGenerator(model_key="flash25", temperature=0.7)
 
-    print(f"\n--- Model Info ---")
+    print("\n--- Model Info ---")
     print(f"Model : {generator.get_model_name()}")
 
     # Simple generation
-    print(f"\n--- Simple Generation ---")
+    print("\n--- Simple Generation ---")
     answer = generator.generate_answer("What is LangChain in one sentence?")
     print(f"Answer: {answer}")
 
     # Streaming generation
-    print(f"\n--- Streaming Generation ---")
+    print("\n--- Streaming Generation ---")
     print("Streaming: ", end="", flush=True)
     for chunk in generator.generate_answer_stream("What is LangChain in one sentence?"):
         print(chunk, end="", flush=True)
     print()
 
     # RAG-style generation
-    print(f"\n--- RAG Generation ---")
-    context  = """FastAPI is a modern, fast web framework for building APIs with Python.
+    print("\n--- RAG Generation ---")
+    context = """FastAPI is a modern, fast web framework for building APIs with Python.
     It is based on standard Python type hints. It is one of the fastest Python frameworks available."""
     question = "What is FastAPI?"
-    answer   = generator.generate_rag_answer(question=question, context=context)
+    answer = generator.generate_rag_answer(question=question, context=context)
     print(f"Question: {question}")
     print(f"Answer  : {answer}")
 
-    print(f"\n--- Available Models ---")
+    print("\n--- Available Models ---")
     for key, name in GeminiGenerator.list_available_models().items():
         print(f"  {key:10} → {name}")

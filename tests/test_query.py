@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -47,8 +46,8 @@ def test_health_check():
     data = response.json()
     assert data["status"] == "healthy"
     assert "timestamp" in data
-    assert "service"   in data
-    assert "version"   in data
+    assert "service" in data
+    assert "version" in data
 
 
 # ── Metrics Endpoint ──────────────────────────────────────────────────────────
@@ -76,8 +75,7 @@ def test_query_missing_question():
 def test_query_invalid_top_k():
     """top_k below 1 should return 422 Unprocessable Entity."""
     response = client.post(
-        "/api/v1/query",
-        json={"question": "What is FastAPI?", "top_k": 0}
+        "/api/v1/query", json={"question": "What is FastAPI?", "top_k": 0}
     )
     assert response.status_code == 422
 
@@ -87,7 +85,7 @@ def test_upload_invalid_file_type():
     """Unsupported file type should return 415."""
     response = client.post(
         "/api/v1/upload",
-        files={"file": ("test.exe", b"fake content", "application/octet-stream")}
+        files={"file": ("test.exe", b"fake content", "application/octet-stream")},
     )
     assert response.status_code == 415
 
@@ -95,8 +93,7 @@ def test_upload_invalid_file_type():
 def test_upload_empty_file():
     """Empty file should return 400."""
     response = client.post(
-        "/api/v1/upload",
-        files={"file": ("test.pdf", b"", "application/pdf")}
+        "/api/v1/upload", files={"file": ("test.pdf", b"", "application/pdf")}
     )
     assert response.status_code == 400
 
@@ -106,15 +103,12 @@ def test_feedback_invalid_rating():
     """Rating outside 1-5 should return 422 Unprocessable Entity."""
     response = client.post(
         "/api/v1/feedback",
-        json={"question": "What is RAG?", "answer": "RAG is...", "rating": 10}
+        json={"question": "What is RAG?", "answer": "RAG is...", "rating": 10},
     )
     assert response.status_code == 422
 
 
 def test_feedback_missing_fields():
     """Missing required fields should return 422 Unprocessable Entity."""
-    response = client.post(
-        "/api/v1/feedback",
-        json={"question": "What is RAG?"}
-    )
+    response = client.post("/api/v1/feedback", json={"question": "What is RAG?"})
     assert response.status_code == 422

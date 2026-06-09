@@ -7,11 +7,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 class HealthResponse(BaseModel):
     status: str
     timestamp: str
     service: str
     version: str
+
 
 @router.get(
     "/health",
@@ -26,5 +28,5 @@ async def health_check() -> HealthResponse:
         status="healthy",
         timestamp=datetime.now(timezone.utc).isoformat(),
         service="RAG Assistant",
-        version="1.0.0"
+        version="1.0.0",
     )

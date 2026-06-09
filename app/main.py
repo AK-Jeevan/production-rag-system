@@ -11,8 +11,7 @@ from app.api.metrics import router as metrics_router
 from src.monitoring import metrics as _metrics  # noqa: F401 — registers all Prometheus metrics on import
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -39,11 +38,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(health_router,   prefix="/api/v1", tags=["Health"])
-app.include_router(rag_router,      prefix="/api/v1", tags=["RAG"])
-app.include_router(upload_router,   prefix="/api/v1", tags=["Upload"])
+app.include_router(health_router, prefix="/api/v1", tags=["Health"])
+app.include_router(rag_router, prefix="/api/v1", tags=["RAG"])
+app.include_router(upload_router, prefix="/api/v1", tags=["Upload"])
 app.include_router(feedback_router, prefix="/api/v1", tags=["Feedback"])
-app.include_router(metrics_router,  prefix="/api/v1", tags=["Monitoring"])
+app.include_router(metrics_router, prefix="/api/v1", tags=["Monitoring"])
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

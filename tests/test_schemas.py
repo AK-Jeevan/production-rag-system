@@ -6,7 +6,6 @@ from app.schemas.feedback import FeedbackRequest
 
 # ── QueryRequest ──────────────────────────────────────────────────────────────
 class TestQueryRequest:
-
     def test_valid_query_request(self):
         req = QueryRequest(question="What is FastAPI?")
         assert req.question == "What is FastAPI?"
@@ -31,7 +30,6 @@ class TestQueryRequest:
 
 # ── QueryResponse ─────────────────────────────────────────────────────────────
 class TestQueryResponse:
-
     def test_valid_query_response(self):
         res = QueryResponse(answer="FastAPI is a web framework.", sources=[])
         assert res.answer == "FastAPI is a web framework."
@@ -53,9 +51,10 @@ class TestQueryResponse:
 
 # ── FeedbackRequest ───────────────────────────────────────────────────────────
 class TestFeedbackRequest:
-
     def test_valid_feedback(self):
-        req = FeedbackRequest(question="What is FastAPI?", answer="A framework.", rating=5)
+        req = FeedbackRequest(
+            question="What is FastAPI?", answer="A framework.", rating=5
+        )
         assert req.rating == 5
 
     def test_rating_below_min_raises(self):

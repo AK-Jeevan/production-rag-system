@@ -10,14 +10,13 @@ REGISTRY_PATH = "config/prompt_registry.json"
 
 
 class PromptRegistry:
-
     # ── Built-in versioned templates ─────────────────────────────────────────
     DEFAULT_TEMPLATES = {
         "rag_v1": {
-            "version"    : "v1",
-            "name"       : "rag_v1",
+            "version": "v1",
+            "name": "rag_v1",
             "description": "Basic RAG prompt — answer only from context.",
-            "template"   : """You are a helpful AI assistant.
+            "template": """You are a helpful AI assistant.
 Answer ONLY using the provided context below.
 If the answer cannot be found in the context, say:
 "I could not find the answer in the knowledge base."
@@ -29,15 +28,14 @@ QUESTION:
 {query}
 
 ANSWER:""",
-            "created_at" : "2024-01-01T00:00:00",
-            "active"     : False,
+            "created_at": "2024-01-01T00:00:00",
+            "active": False,
         },
-
         "rag_v2": {
-            "version"    : "v2",
-            "name"       : "rag_v2",
+            "version": "v2",
+            "name": "rag_v2",
             "description": "Domain-specific RAG prompt with MLOps expertise.",
-            "template"   : """You are a helpful AI assistant with expertise in \
+            "template": """You are a helpful AI assistant with expertise in \
 MLOps, LangChain, FastAPI, Docker, MLflow, DVC, and AWS.
 
 Answer ONLY using the provided context below.
@@ -53,15 +51,14 @@ QUESTION:
 {query}
 
 ANSWER:""",
-            "created_at" : "2024-02-01T00:00:00",
-            "active"     : False,
+            "created_at": "2024-02-01T00:00:00",
+            "active": False,
         },
-
         "rag_v3": {
-            "version"    : "v3",
-            "name"       : "rag_v3",
+            "version": "v3",
+            "name": "rag_v3",
             "description": "RAG prompt with structured response and source citation.",
-            "template"   : """You are a helpful AI assistant with expertise in \
+            "template": """You are a helpful AI assistant with expertise in \
 MLOps, LangChain, FastAPI, Docker, MLflow, DVC, and AWS.
 
 Answer ONLY using the provided context below.
@@ -82,30 +79,28 @@ QUESTION:
 {query}
 
 ANSWER:""",
-            "created_at" : "2024-03-01T00:00:00",
-            "active"     : True,               # ← default active version
+            "created_at": "2024-03-01T00:00:00",
+            "active": True,  # ← default active version
         },
-
         "summary_v1": {
-            "version"    : "v1",
-            "name"       : "summary_v1",
+            "version": "v1",
+            "name": "summary_v1",
             "description": "Summarization prompt.",
-            "template"   : """You are a helpful AI assistant.
+            "template": """You are a helpful AI assistant.
 Summarize the following context in a clear and concise way.
 
 CONTEXT:
 {context}
 
 SUMMARY:""",
-            "created_at" : "2024-01-01T00:00:00",
-            "active"     : True,
+            "created_at": "2024-01-01T00:00:00",
+            "active": True,
         },
-
         "followup_v1": {
-            "version"    : "v1",
-            "name"       : "followup_v1",
+            "version": "v1",
+            "name": "followup_v1",
             "description": "Follow-up prompt with conversation history.",
-            "template"   : """You are a helpful AI assistant.
+            "template": """You are a helpful AI assistant.
 Given the conversation history and context, answer the follow-up question.
 
 CONVERSATION HISTORY:
@@ -118,8 +113,8 @@ FOLLOW-UP QUESTION:
 {query}
 
 ANSWER:""",
-            "created_at" : "2024-01-01T00:00:00",
-            "active"     : True,
+            "created_at": "2024-01-01T00:00:00",
+            "active": True,
         },
     }
 
@@ -136,7 +131,9 @@ ANSWER:""",
         else:
             self.registry = self.DEFAULT_TEMPLATES.copy()
             self._save()
-            logger.info(f"✅ Prompt registry initialized with {len(self.registry)} default templates.")
+            logger.info(
+                f"✅ Prompt registry initialized with {len(self.registry)} default templates."
+            )
 
     def _save(self) -> None:
         """Persist registry to disk."""
@@ -158,7 +155,8 @@ ANSWER:""",
     def get_active(self, prefix: str = "rag") -> dict:
         """Get the active template for a given prefix (e.g. 'rag', 'summary')."""
         active = [
-            v for k, v in self.registry.items()
+            v
+            for k, v in self.registry.items()
             if k.startswith(prefix) and v.get("active", False)
         ]
         if not active:
@@ -173,10 +171,10 @@ ANSWER:""",
 
     def register(
         self,
-        name       : str,
-        template   : str,
-        description: str  = "",
-        set_active : bool = False,
+        name: str,
+        template: str,
+        description: str = "",
+        set_active: bool = False,
     ) -> None:
         """Register a new prompt template."""
         if not name or not template:
@@ -186,12 +184,12 @@ ANSWER:""",
             logger.warning(f"⚠️  Overwriting existing prompt: '{name}'")
 
         self.registry[name] = {
-            "version"    : name.split("_")[-1] if "_" in name else "v1",
-            "name"       : name,
+            "version": name.split("_")[-1] if "_" in name else "v1",
+            "name": name,
             "description": description,
-            "template"   : template,
-            "created_at" : datetime.utcnow().isoformat(),
-            "active"     : set_active,
+            "template": template,
+            "created_at": datetime.utcnow().isoformat(),
+            "active": set_active,
         }
 
         # If set_active, deactivate other prompts with same prefix
@@ -222,13 +220,13 @@ ANSWER:""",
 
     def list_all(self) -> None:
         """Print all registered prompts."""
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"  📋 Prompt Registry ({len(self.registry)} templates)")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         for name, meta in self.registry.items():
             active = "✅ ACTIVE" if meta.get("active") else "  inactive"
             print(f"  {active} | {name:20} | {meta['description']}")
-        print(f"{'='*70}\n")
+        print(f"{'=' * 70}\n")
 
     def delete(self, name: str) -> None:
         """Delete a prompt from the registry."""
@@ -257,9 +255,9 @@ if __name__ == "__main__":
     # Register a new version
     print("\n--- Registering rag_v4 ---")
     registry.register(
-        name        = "rag_v4",
-        description = "RAG v4 — step-by-step reasoning.",
-        template    = """You are a helpful AI assistant with expertise in MLOps.
+        name="rag_v4",
+        description="RAG v4 — step-by-step reasoning.",
+        template="""You are a helpful AI assistant with expertise in MLOps.
 
 Answer ONLY using the provided context below.
 If the answer cannot be found, say:
@@ -274,7 +272,7 @@ QUESTION:
 {query}
 
 ANSWER:""",
-        set_active  = True,
+        set_active=True,
     )
 
     registry.list_all()

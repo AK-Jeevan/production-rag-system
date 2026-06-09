@@ -7,10 +7,7 @@ logger = logging.getLogger(__name__)
 
 class DocumentChunker:
     def __init__(
-        self,
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
-        separators: list = None
+        self, chunk_size: int = 1000, chunk_overlap: int = 200, separators: list = None
     ):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
@@ -47,10 +44,10 @@ class DocumentChunker:
 
         lengths = [len(chunk.page_content) for chunk in chunks]
         return {
-            "total_chunks"  : len(chunks),
-            "avg_length"    : round(sum(lengths) / len(lengths), 2),
-            "min_length"    : min(lengths),
-            "max_length"    : max(lengths),
+            "total_chunks": len(chunks),
+            "avg_length": round(sum(lengths) / len(lengths), 2),
+            "min_length": min(lengths),
+            "max_length": max(lengths),
         }
 
 
@@ -61,14 +58,14 @@ if __name__ == "__main__":
     sample_docs = [
         Document(
             page_content="LangChain is a framework for developing applications powered by language models. "
-                         "It provides tools for chaining together different components. "
-                         "You can build RAG pipelines, agents, and chatbots with it. " * 20,
-            metadata={"source": "langchain.md"}
+            "It provides tools for chaining together different components. "
+            "You can build RAG pipelines, agents, and chatbots with it. " * 20,
+            metadata={"source": "langchain.md"},
         ),
         Document(
             page_content="FastAPI is a modern, fast web framework for building APIs with Python. "
-                         "It is based on standard Python type hints and is very easy to use. " * 20,
-            metadata={"source": "fastapi.md"}
+            "It is based on standard Python type hints and is very easy to use. " * 20,
+            metadata={"source": "fastapi.md"},
         ),
     ]
 
@@ -76,10 +73,10 @@ if __name__ == "__main__":
     chunks = chunker.split_documents(sample_docs)
 
     stats = chunker.get_chunk_stats(chunks)
-    print(f"\n--- Chunk Stats ---")
+    print("\n--- Chunk Stats ---")
     for key, value in stats.items():
         print(f"  {key:15}: {value}")
 
-    print(f"\n--- First Chunk Preview ---")
+    print("\n--- First Chunk Preview ---")
     print(f"Source : {chunks[0].metadata.get('source')}")
     print(f"Content: {chunks[0].page_content[:300]}...")

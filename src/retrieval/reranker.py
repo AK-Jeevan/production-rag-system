@@ -6,14 +6,13 @@ logger = logging.getLogger(__name__)
 
 
 class Reranker:
-
     AVAILABLE_MODELS = {
-        "minilm"  : "cross-encoder/ms-marco-MiniLM-L-6-v2",   # fast, lightweight
-        "electra" : "cross-encoder/ms-marco-electra-base",     # better quality
+        "minilm": "cross-encoder/ms-marco-MiniLM-L-6-v2",  # fast, lightweight
+        "electra": "cross-encoder/ms-marco-electra-base",  # better quality
     }
 
     def __init__(self, model_key: str = "minilm", top_k: int = 5):
-        self.top_k      = top_k
+        self.top_k = top_k
         self.model_name = self.AVAILABLE_MODELS.get(model_key, model_key)
 
         logger.info(f"🔄 Loading reranker model: {self.model_name}")
@@ -29,15 +28,11 @@ class Reranker:
         k = top_k or self.top_k
 
         # Score each doc against the query
-        pairs  = [[query, doc.page_content] for doc in docs]
+        pairs = [[query, doc.page_content] for doc in docs]
         scores = self.model.predict(pairs)
 
         # Attach scores and sort
-        scored_docs = sorted(
-            zip(docs, scores),
-            key    = lambda x: x[1],
-            reverse= True
-        )
+        scored_docs = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)
 
         top_docs = [doc for doc, score in scored_docs[:k]]
         top_scores = [round(float(score), 4) for _, score in scored_docs[:k]]

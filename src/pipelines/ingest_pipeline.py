@@ -10,20 +10,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-RAW_DATA_PATH       = "data/raw"
+RAW_DATA_PATH = "data/raw"
 PROCESSED_DATA_PATH = "data/processed/chunks.json"
-CHUNK_SIZE          = 1000
-CHUNK_OVERLAP       = 200
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
 
 
 def save_chunks(chunks: list) -> None:
     """Serialize and save chunks to JSON."""
     serialized_chunks = [
-        {
-            "content" : chunk.page_content,
-            "metadata": chunk.metadata
-        }
-        for chunk in chunks
+        {"content": chunk.page_content, "metadata": chunk.metadata} for chunk in chunks
     ]
 
     os.makedirs("data/processed", exist_ok=True)
@@ -41,10 +37,9 @@ def run_ingestion() -> None:
     tracker = MLflowTracker()
 
     with tracker.start_run("document_ingestion_pipeline"):
-
         # --- Step 1: Load ---
         logger.info("📂 Step 1: Loading documents...")
-        loader    = DocumentLoader(RAW_DATA_PATH)
+        loader = DocumentLoader(RAW_DATA_PATH)
         documents = loader.load_documents()
 
         if not documents:
@@ -53,17 +48,14 @@ def run_ingestion() -> None:
 
         # --- Step 2: Clean ---
         logger.info("🧹 Step 2: Cleaning documents...")
-        cleaner           = TextCleaner()
+        cleaner = TextCleaner()
         cleaned_documents = cleaner.clean_documents(documents)
 
         # --- Step 3: Chunk ---
         logger.info("✂️  Step 3: Chunking documents...")
-        chunker = DocumentChunker(
-            chunk_size=CHUNK_SIZE,
-            chunk_overlap=CHUNK_OVERLAP
-        )
+        chunker = DocumentChunker(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
         chunks = chunker.split_documents(cleaned_documents)
-        stats  = chunker.get_chunk_stats(chunks)
+        stats = chunker.get_chunk_stats(chunks)
 
         # --- Step 4: Save ---
         logger.info("💾 Step 4: Saving chunks...")
@@ -72,22 +64,22 @@ def run_ingestion() -> None:
         # --- Step 5: Track ---
         logger.info("📊 Step 5: Logging metrics to MLflow...")
         tracker.log_rag_parameters(
-            chunk_size      = CHUNK_SIZE,
-            chunk_overlap   = CHUNK_OVERLAP,
-            embedding_model = "not_yet_set",
-            top_k           = 0,
-            vector_db       = "not_yet_set",
-            llm_model       = "not_yet_set"
+            chunk_size=CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP,
+            embedding_model="not_yet_set",
+            top_k=0,
+            vector_db="not_yet_set",
+            llm_model="not_yet_set",
         )
 
         # use log_metric not log_metrics (matches your MLflowTracker API)
         mlflow_metrics = {
-            "documents_loaded" : len(documents),
+            "documents_loaded": len(documents),
             "documents_cleaned": len(cleaned_documents),
-            "chunks_created"   : len(chunks),
-            "avg_chunk_length" : stats.get("avg_length", 0),
-            "min_chunk_length" : stats.get("min_length", 0),
-            "max_chunk_length" : stats.get("max_length", 0),
+            "chunks_created": len(chunks),
+            "avg_chunk_length": stats.get("avg_length", 0),
+            "min_chunk_length": stats.get("min_length", 0),
+            "max_chunk_length": stats.get("max_length", 0),
         }
 
         for key, value in mlflow_metrics.items():

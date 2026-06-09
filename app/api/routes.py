@@ -40,13 +40,13 @@ async def query_rag(request: QueryRequest) -> QueryResponse:
         rag_service = get_rag_service()
 
         start_time = time.time()
-        result     = rag_service.query(request.question, top_k=request.top_k)
+        result = rag_service.query(request.question, top_k=request.top_k)
         QUERY_LATENCY.labels(endpoint="/query").observe(time.time() - start_time)
 
         return QueryResponse(
-            answer     = result.get("answer", ""),
-            sources    = result.get("sources", []),
-            confidence = result.get("confidence", None)
+            answer=result.get("answer", ""),
+            sources=result.get("sources", []),
+            confidence=result.get("confidence", None),
         )
 
     except FileNotFoundError as e:
@@ -54,15 +54,14 @@ async def query_rag(request: QueryRequest) -> QueryResponse:
         ERROR_COUNT.labels(endpoint="/query", error_type="FileNotFoundError").inc()
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Vector store not initialized. Please upload documents first."
+            detail="Vector store not initialized. Please upload documents first.",
         )
 
     except ValueError as e:
         logger.warning(f"⚠️ Validation error: {e}")
         ERROR_COUNT.labels(endpoint="/query", error_type="ValueError").inc()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         )
 
     except Exception as e:
@@ -70,7 +69,7 @@ async def query_rag(request: QueryRequest) -> QueryResponse:
         ERROR_COUNT.labels(endpoint="/query", error_type="Exception").inc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Something went wrong. Please try again."
+            detail="Something went wrong. Please try again.",
         )
 
 
@@ -88,38 +87,39 @@ async def query_rag_stream(request: QueryRequest) -> StreamingResponse:
         ERROR_COUNT.labels(endpoint="/query-stream", error_type="ValueError").inc()
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Question must not be empty."
+            detail="Question must not be empty.",
         )
 
     try:
         rag_service = get_rag_service()
 
         start_time = time.time()
-        response   = StreamingResponse(
+        response = StreamingResponse(
             rag_service.pipeline.ask_stream(request.question),
             media_type="text/event-stream",
             headers={
-                "Cache-Control"    : "no-cache",
+                "Cache-Control": "no-cache",
                 "X-Accel-Buffering": "no",
-            }
+            },
         )
         QUERY_LATENCY.labels(endpoint="/query-stream").observe(time.time() - start_time)
         return response
 
     except FileNotFoundError as e:
         logger.error(f"❌ FAISS index not found: {e}")
-        ERROR_COUNT.labels(endpoint="/query-stream", error_type="FileNotFoundError").inc()
+        ERROR_COUNT.labels(
+            endpoint="/query-stream", error_type="FileNotFoundError"
+        ).inc()
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Vector store not initialized. Please upload documents first."
+            detail="Vector store not initialized. Please upload documents first.",
         )
 
     except ValueError as e:
         logger.warning(f"⚠️ Validation error: {e}")
         ERROR_COUNT.labels(endpoint="/query-stream", error_type="ValueError").inc()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         )
 
     except Exception as e:
@@ -127,5 +127,5 @@ async def query_rag_stream(request: QueryRequest) -> StreamingResponse:
         ERROR_COUNT.labels(endpoint="/query-stream", error_type="Exception").inc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Streaming failed. Please try again."
+            detail="Streaming failed. Please try again.",
         )

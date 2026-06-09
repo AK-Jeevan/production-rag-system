@@ -1,6 +1,5 @@
 import os
 import json
-import shutil
 import logging
 import time
 from pathlib import Path
@@ -18,33 +17,31 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-UPLOAD_DIR        = "data/uploads"
-PROCESSED_DIR     = "data/processed"
-CHUNKS_PATH       = "data/processed/chunks.json"
-CHUNK_SIZE        = 1000
-CHUNK_OVERLAP     = 200
-SUPPORTED_TYPES   = {".pdf", ".txt", ".docx", ".md"}
+UPLOAD_DIR = "data/uploads"
+PROCESSED_DIR = "data/processed"
+CHUNKS_PATH = "data/processed/chunks.json"
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+SUPPORTED_TYPES = {".pdf", ".txt", ".docx", ".md"}
 
 
 class UploadPipeline:
-
     def __init__(self):
         logger.info("🚀 Initializing Upload Pipeline...")
 
-        self.cleaner  = TextCleaner()
-        self.chunker  = DocumentChunker(
-            chunk_size    = CHUNK_SIZE,
-            chunk_overlap = CHUNK_OVERLAP
+        self.cleaner = TextCleaner()
+        self.chunker = DocumentChunker(
+            chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
         )
 
         # Load embedding model
         embedder = EmbeddingGenerator(model_key="minilm", device="cpu")
         self.embedding_model = embedder.get_embedding_model()
-        self.embedder        = embedder
+        self.embedder = embedder
 
         # Load vector store manager
         self.vector_store_manager = VectorStoreManager(
-            embedding_model = self.embedding_model
+            embedding_model=self.embedding_model
         )
 
         # Load BM25
@@ -59,7 +56,7 @@ class UploadPipeline:
             logger.info("⚠️  No existing FAISS index — will create on first upload.")
 
         self.tracker = MLflowTracker()
-        os.makedirs(UPLOAD_DIR,    exist_ok=True)
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
         os.makedirs(PROCESSED_DIR, exist_ok=True)
 
         logger.info("✅ Upload Pipeline ready.")
@@ -69,8 +66,7 @@ class UploadPipeline:
         ext = Path(file_name).suffix.lower()
         if ext not in SUPPORTED_TYPES:
             raise ValueError(
-                f"❌ Unsupported file type: '{ext}'. "
-                f"Supported: {SUPPORTED_TYPES}"
+                f"❌ Unsupported file type: '{ext}'. Supported: {SUPPORTED_TYPES}"
             )
 
         dest_path = os.path.join(UPLOAD_DIR, file_name)
@@ -89,20 +85,14 @@ class UploadPipeline:
             data = json.load(f)
 
         return [
-            Document(
-                page_content = item["content"],
-                metadata     = item["metadata"]
-            )
+            Document(page_content=item["content"], metadata=item["metadata"])
             for item in data
         ]
 
     def _save_chunks(self, chunks: list) -> None:
         """Serialize and save all chunks to JSON."""
         serialized = [
-            {
-                "content" : chunk.page_content,
-                "metadata": chunk.metadata
-            }
+            {"content": chunk.page_content, "metadata": chunk.metadata}
             for chunk in chunks
         ]
         os.makedirs(PROCESSED_DIR, exist_ok=True)
@@ -129,17 +119,16 @@ class UploadPipeline:
 
             # --- Step 1: Save file ---
             logger.info("💾 Step 1: Saving uploaded file...")
-            file_path = self._save_uploaded_file(file_name, file_bytes)
+            self._save_uploaded_file(file_name, file_bytes)
 
             # --- Step 2: Load document ---
             logger.info("📂 Step 2: Loading document...")
-            loader    = DocumentLoader(UPLOAD_DIR)
+            loader = DocumentLoader(UPLOAD_DIR)
             documents = loader.load_documents()
 
             # Filter to only the newly uploaded file
             new_docs = [
-                doc for doc in documents
-                if file_name in doc.metadata.get("source", "")
+                doc for doc in documents if file_name in doc.metadata.get("source", "")
             ]
 
             if not new_docs:
@@ -168,8 +157,7 @@ class UploadPipeline:
             else:
                 # Subsequent uploads — add to existing index
                 self.vector_store = self.vector_store_manager.add_documents(
-                    self.vector_store,
-                    new_chunks
+                    self.vector_store, new_chunks
                 )
 
             embed_latency = round(time.time() - embed_start, 4)
@@ -179,7 +167,7 @@ class UploadPipeline:
             # --- Step 6: Update BM25 ---
             logger.info("📦 Step 6: Rebuilding BM25 index...")
             existing_chunks = self._load_existing_chunks()
-            all_chunks      = existing_chunks + new_chunks
+            all_chunks = existing_chunks + new_chunks
             self._rebuild_bm25(all_chunks)
 
             # --- Step 7: Save all chunks ---
@@ -191,27 +179,27 @@ class UploadPipeline:
             # --- Step 8: Track ---
             logger.info("📊 Step 8: Logging to MLflow...")
             self.tracker.log_rag_parameters(
-                chunk_size      = CHUNK_SIZE,
-                chunk_overlap   = CHUNK_OVERLAP,
-                embedding_model = self.embedder.get_model_name(),
-                top_k           = 0,
-                vector_db       = "FAISS + BM25",
-                llm_model       = "not_applicable"
+                chunk_size=CHUNK_SIZE,
+                chunk_overlap=CHUNK_OVERLAP,
+                embedding_model=self.embedder.get_model_name(),
+                top_k=0,
+                vector_db="FAISS + BM25",
+                llm_model="not_applicable",
             )
-            self.tracker.log_metric("new_pages",       len(new_docs))
-            self.tracker.log_metric("new_chunks",      len(new_chunks))
-            self.tracker.log_metric("total_chunks",    len(all_chunks))
-            self.tracker.log_metric("embed_latency",   embed_latency)
-            self.tracker.log_metric("total_latency",   total_latency)
+            self.tracker.log_metric("new_pages", len(new_docs))
+            self.tracker.log_metric("new_chunks", len(new_chunks))
+            self.tracker.log_metric("total_chunks", len(all_chunks))
+            self.tracker.log_metric("embed_latency", embed_latency)
+            self.tracker.log_metric("total_latency", total_latency)
 
             result = {
-                "file_name"    : file_name,
-                "new_pages"    : len(new_docs),
-                "new_chunks"   : len(new_chunks),
-                "total_chunks" : len(all_chunks),
+                "file_name": file_name,
+                "new_pages": len(new_docs),
+                "new_chunks": len(new_chunks),
+                "total_chunks": len(all_chunks),
                 "embed_latency": embed_latency,
                 "total_latency": total_latency,
-                "status"       : "success",
+                "status": "success",
             }
 
             logger.info("✅ Upload pipeline complete.")
@@ -237,12 +225,11 @@ class UploadPipeline:
             logger.info(f"   File deleted: {file_path}")
 
         # --- Remove chunks belonging to this file ---
-        existing_chunks  = self._load_existing_chunks()
-        filtered_chunks  = [
-            c for c in existing_chunks
-            if file_name not in c.metadata.get("source", "")
+        existing_chunks = self._load_existing_chunks()
+        filtered_chunks = [
+            c for c in existing_chunks if file_name not in c.metadata.get("source", "")
         ]
-        removed_count    = len(existing_chunks) - len(filtered_chunks)
+        removed_count = len(existing_chunks) - len(filtered_chunks)
         logger.info(f"   Removed {removed_count} chunks for: {file_name}")
 
         # --- Save updated chunks ---
@@ -263,10 +250,10 @@ class UploadPipeline:
         self._rebuild_bm25(filtered_chunks)
 
         return {
-            "file_name"      : file_name,
-            "chunks_removed" : removed_count,
+            "file_name": file_name,
+            "chunks_removed": removed_count,
             "chunks_remaining": len(filtered_chunks),
-            "status"         : "deleted",
+            "status": "deleted",
         }
 
     def list_uploaded_files(self) -> list:
@@ -276,11 +263,13 @@ class UploadPipeline:
             ext = Path(f).suffix.lower()
             if ext in SUPPORTED_TYPES:
                 path = os.path.join(UPLOAD_DIR, f)
-                files.append({
-                    "file_name": f,
-                    "size_kb"  : round(os.path.getsize(path) / 1024, 2),
-                    "extension": ext,
-                })
+                files.append(
+                    {
+                        "file_name": f,
+                        "size_kb": round(os.path.getsize(path) / 1024, 2),
+                        "extension": ext,
+                    }
+                )
         return files
 
 
@@ -298,7 +287,7 @@ if __name__ == "__main__":
         print("  No files uploaded yet.")
 
     # Simulate uploading a text file
-    test_file    = "test_doc.txt"
+    test_file = "test_doc.txt"
     test_content = b"""FastAPI is a modern Python web framework.
 It is very fast and easy to use.
 It supports async out of the box.
@@ -306,6 +295,6 @@ It is based on standard Python type hints."""
 
     print(f"\n--- Processing Upload: {test_file} ---")
     result = pipeline.process(test_file, test_content)
-    print(f"\nResult:")
+    print("\nResult:")
     for key, value in result.items():
         print(f"  {key:15}: {value}")
