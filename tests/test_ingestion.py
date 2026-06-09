@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from unittest.mock import MagicMock, patch, mock_open
 
@@ -19,7 +21,7 @@ class TestLoader:
             docs = loader.load_documents()
 
         assert len(docs) >= 1
-        mock_loader.assert_called_once_with("data\\fake.pdf")
+        mock_loader.assert_called_once_with(os.path.join("data", "fake.pdf"))
 
     @patch("src.ingestion.loader.os.walk")
     @patch("src.ingestion.loader.os.path.exists", return_value=True)
