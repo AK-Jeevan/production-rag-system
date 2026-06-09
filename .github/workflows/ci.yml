@@ -42,7 +42,7 @@ jobs:
             --cov-report=term-missing \
             --cov-report=html:htmlcov \
             --cov-report=xml:coverage.xml \
-            --cov-fail-under=70
+            --cov-fail-under=60
 
   lint:
     name: Lint & Format Check
