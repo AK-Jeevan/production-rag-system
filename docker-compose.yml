@@ -58,11 +58,12 @@ services:
       sh -c "
       pip install --quiet mlflow &&
       mlflow server
-      --backend-store-uri sqlite:///mlflow.db
-      --default-artifact-root /mlflow/mlruns
       --host 0.0.0.0
       --port 5000
-      --allowed-hosts '*'
+      --backend-store-uri sqlite:///mlflow.db
+      --default-artifact-root ./mlruns
+      --allowed-hosts "*"
+      --cors-allowed-origins "*"
       "
     ports:
       - "5000:5000"
