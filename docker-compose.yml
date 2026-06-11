@@ -48,34 +48,28 @@ services:
 
   # ── MLflow Tracking Server ──────────────────────────────────────────────────
   mlflow:
-   image: python:3.11-slim
-   container_name: rag-mlflow
-   restart: unless-stopped
-   working_dir: /mlflow
-   volumes:
-     - mlflow-data:/mlflow
-   command:
-     - sh
-     - -c
-     - |
-       pip install --quiet mlflow &&
-       mlflow server
-       --host 0.0.0.0
-       --port 5000
-       --backend-store-uri sqlite:///mlflow.db
-       --default-artifact-root ./mlruns
-       --allowed-hosts *
-       --cors-allowed-origins *
-   ports:
-     - "5000:5000"
-   networks:
-     - rag-network
-   healthcheck:
-     test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-     interval: 30s
-     timeout: 10s
-     retries: 5
-     start_period: 60s
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: rag-mlflow
+    restart: unless-stopped
+    working_dir: /mlflow
+    volumes:
+      - mlflow-data:/mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:///mlflow.db
+      --default-artifact-root /mlflow/mlruns
+    ports:
+      - "5000:5000"
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/2.0/mlflow/experiments/list"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
   # ── Prometheus ──────────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
