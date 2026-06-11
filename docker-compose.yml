@@ -1,6 +1,7 @@
 services:
 
   # ── FastAPI RAG Application ─────────────────────────────────────────────────
+  # ── FastAPI RAG Application ─────────────────────────────────────────────────
   fastapi:
     build: .
     container_name: rag-fastapi
@@ -21,12 +22,12 @@ services:
     networks:
       - rag-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5).read()\""]
+      interval: 15s
+      timeout: 10s
       retries: 5
-      start_period: 60s       # ← was 20s; increased to give FAISS + model loading time to finish
-
+      start_period: 60s
+      
   # ── Nginx Reverse Proxy ─────────────────────────────────────────────────────
   nginx:
     image: nginx:stable-alpine
