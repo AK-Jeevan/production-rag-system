@@ -9,6 +9,8 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
     volumes:
       - ./data:/app/data
     depends_on:
@@ -65,11 +67,11 @@ services:
     networks:
       - rag-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]   # ← fixed endpoint
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=5).read()\""]
       interval: 20s
       timeout: 10s
       retries: 5
-      start_period: 60s                                              # ← increased: MLflow needs more time
+      start_period: 90s
 
   # ── Prometheus ──────────────────────────────────────────────────────────────
   prometheus:
