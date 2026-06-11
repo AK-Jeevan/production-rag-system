@@ -22,10 +22,10 @@ services:
       - rag-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s       # ← was 20s; increased to give FAISS + model loading time to finish
 
   # ── Nginx Reverse Proxy ─────────────────────────────────────────────────────
   nginx:
