@@ -1,6 +1,7 @@
 import os
 import logging
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,7 +14,7 @@ api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
     raise ValueError("❌ GOOGLE_API_KEY not found. Check your .env file.")
 
-genai.configure(api_key=api_key)
+client = genai.Client(api_key=api_key)
 
 
 class QueryRewriter:
@@ -51,12 +52,9 @@ EXPANDED QUESTIONS:"""
 
     def __init__(self, model_name: str = "gemini-2.0-flash"):
         self.model_name = model_name
-        self.model = genai.GenerativeModel(
-            model_name=self.model_name,
-            generation_config=genai.GenerationConfig(
-                temperature=0.3,  # low temp for focused rewrites
-                max_output_tokens=256,
-            ),
+        self.config = types.GenerateContentConfig(
+            temperature=0.3,  # low temp for focused rewrites
+            max_output_tokens=256,
         )
         logger.info(f"✅ QueryRewriter loaded: {self.model_name}")
 
@@ -70,7 +68,11 @@ EXPANDED QUESTIONS:"""
         prompt = self.REWRITE_TEMPLATE.format(history=history_text, question=question)
 
         try:
-            response = self.model.generate_content(prompt)
+            response = client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=self.config,
+            )
             rewritten = response.text.strip()
             logger.info("✅ Query rewritten.")
             logger.info(f"   Original : {question}")
@@ -89,7 +91,11 @@ EXPANDED QUESTIONS:"""
         prompt = self.EXPAND_TEMPLATE.format(question=question, n=n)
 
         try:
-            response = self.model.generate_content(prompt)
+            response = client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=self.config,
+            )
             raw = response.text.strip()
             expansions = [line.strip() for line in raw.splitlines() if line.strip()][:n]
 
