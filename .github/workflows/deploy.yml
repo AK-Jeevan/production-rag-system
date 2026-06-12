@@ -58,7 +58,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "./deploy-bundle.tar.gz"
-          target: "/home/{0}/rag-system/"
+          target: "/home/${{ secrets.EC2_USER }}/rag-system"
 
       - name: Extract and Deploy on EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
