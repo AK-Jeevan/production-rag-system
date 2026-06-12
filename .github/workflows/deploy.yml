@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      IMAGE_NAME: rag-system
+      IMAGE_NAME: production-rag-system
       IMAGE_TAG: ${{ github.sha }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
@@ -36,11 +36,11 @@ jobs:
           docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
 
       - name: Save Docker Image as Tarball
-        run: docker save $IMAGE_NAME:latest | gzip > rag-system.tar.gz
+        run: docker save $IMAGE_NAME:latest | gzip > production-rag-system.tar.gz
 
       - name: Bundle Deployment Files
         run: |
-          tar -czf deploy-bundle.tar.gz rag-system.tar.gz docker-compose.yml nginx/ prometheus/
+          tar -czf deploy-bundle.tar.gz production-rag-system.tar.gz docker-compose.yml nginx/ prometheus/
 
       - name: Create Target Directory on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -49,7 +49,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key:      ${{ secrets.EC2_SSH_KEY }}
           script: |
-            mkdir -p /home/${{ secrets.EC2_USER }}/rag-system
+            mkdir -p /home/${{ secrets.EC2_USER }}/production-rag-system
 
       - name: Copy Deployment Bundle to EC2       # ← replaced appleboy/scp-action
         env:
@@ -65,7 +65,7 @@ jobs:
               -o ServerAliveInterval=60 \
               -o ConnectTimeout=30 \
               deploy-bundle.tar.gz \
-              $EC2_USER@$EC2_HOST:/home/$EC2_USER/rag-system/
+              $EC2_USER@$EC2_HOST:/home/$EC2_USER/production-rag-system/
 
           rm -f /tmp/deploy_key
 
@@ -78,12 +78,12 @@ jobs:
           envs:     GOOGLE_API_KEY
           script: |
             set -eu
-            cd /home/${{ secrets.EC2_USER }}/rag-system
+            cd /home/${{ secrets.EC2_USER }}/production-rag-system
             tar -xzf deploy-bundle.tar.gz
             rm -f deploy-bundle.tar.gz
             printf 'GOOGLE_API_KEY=%s\n' "$GOOGLE_API_KEY" > .env
-            docker load < rag-system.tar.gz
-            rm -f rag-system.tar.gz
+            docker load < production-rag-system.tar.gz
+            rm -f production-rag-system.tar.gz
             docker compose down --remove-orphans
             docker compose up -d --no-build
             docker image prune -f
@@ -95,7 +95,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key:      ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/${{ secrets.EC2_USER }}/rag-system
+            cd /home/${{ secrets.EC2_USER }}/production-rag-system
             docker compose ps
             for attempt in $(seq 1 12); do
               if curl --fail --silent http://localhost:8000/api/v1/health; then
