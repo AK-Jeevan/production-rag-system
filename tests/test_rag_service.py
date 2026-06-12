@@ -36,7 +36,9 @@ class TestRAGService:
 
         assert result["answer"] == "FastAPI is a web framework."
         assert result["sources"] == ["doc1.pdf"]
-        mock_instance.ask.assert_called_once_with("What is FastAPI?")
+        mock_instance.ask.assert_called_once_with(
+            "What is FastAPI?", top_k=None, prompt_name=None
+        )
 
     @patch("app.services.rag_service.RAGPipeline")
     def test_query_passes_top_k(self, mock_pipeline):
@@ -48,7 +50,9 @@ class TestRAGService:
 
         service = RAGService()
         service.query("What is FastAPI?", top_k=10)
-        mock_instance.ask.assert_called_once_with("What is FastAPI?")
+        mock_instance.ask.assert_called_once_with(
+            "What is FastAPI?", top_k=10, prompt_name=None
+        )
 
     @patch("app.services.rag_service.RAGPipeline")
     def test_query_empty_question_raises(self, mock_pipeline):

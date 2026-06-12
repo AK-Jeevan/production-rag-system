@@ -130,6 +130,28 @@ python run_cli.py
 pytest
 ```
 
+### Run RAGAS Evaluation
+
+The evaluation pipeline queries the real RAG service, scores each answer with
+faithfulness, answer relevancy, context precision, and context recall, then
+writes timestamped JSON and CSV reports under `evaluation/results/`.
+
+Edit `evaluation/datasets/rag_eval.json` to add domain-specific questions and
+reference answers, then run:
+
+```bash
+python run_evaluation.py
+```
+
+Useful overrides:
+
+```bash
+python run_evaluation.py --dataset evaluation/datasets/rag_eval.json --retrieval-top-k 20 --rerank-top-k 5
+```
+
+RAGAS uses Gemini as the evaluator LLM and the local MiniLM model for answer
+relevancy embeddings, so `GOOGLE_API_KEY` must be configured.
+
 ## Deployment
 
 This project is designed to run locally with Docker and to scale into a cloud-hosted deployment without changing the application architecture.
@@ -197,6 +219,7 @@ This project is built around reproducibility.
 
 - Document assets can be managed with DVC.
 - MLflow records pipeline parameters, latency, token counts, and estimated cost.
+- RAGAS reports retrieval quality, answer relevance, and grounding metrics.
 - `models/` contains local vector-store artifacts for FAISS.
 
 ## Testing and Quality

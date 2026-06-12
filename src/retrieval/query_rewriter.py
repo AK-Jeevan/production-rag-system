@@ -10,11 +10,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Configure Gemini ──────────────────────────────────────────────────────────
-api_key = os.getenv("GOOGLE_API_KEY")
-if not api_key:
-    raise ValueError("❌ GOOGLE_API_KEY not found. Check your .env file.")
-
-client = genai.Client(api_key=api_key)
+def _get_client():
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY not found. Check your .env file.")
+    return genai.Client(api_key=api_key)
 
 
 class QueryRewriter:
@@ -52,6 +52,7 @@ EXPANDED QUESTIONS:"""
 
     def __init__(self, model_name: str = "gemini-2.0-flash"):
         self.model_name = model_name
+        self.client = _get_client()
         self.config = types.GenerateContentConfig(
             temperature=0.3,  # low temp for focused rewrites
             max_output_tokens=256,
@@ -68,7 +69,7 @@ EXPANDED QUESTIONS:"""
         prompt = self.REWRITE_TEMPLATE.format(history=history_text, question=question)
 
         try:
-            response = client.models.generate_content(
+            response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
                 config=self.config,
@@ -91,7 +92,7 @@ EXPANDED QUESTIONS:"""
         prompt = self.EXPAND_TEMPLATE.format(question=question, n=n)
 
         try:
-            response = client.models.generate_content(
+            response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
                 config=self.config,

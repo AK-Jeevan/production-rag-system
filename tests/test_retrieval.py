@@ -50,13 +50,13 @@ class TestReranker:
 
 
 class TestQueryRewriter:
-    @patch("src.retrieval.query_rewriter.genai.GenerativeModel")
-    def test_rewrite_with_history(self, mock_model):
+    @patch("src.retrieval.query_rewriter._get_client")
+    def test_rewrite_with_history(self, mock_client):
         from src.retrieval.query_rewriter import QueryRewriter
 
         mock_response = MagicMock()
         mock_response.text = "Rewritten query"
-        mock_model.return_value.generate_content.return_value = mock_response
+        mock_client.return_value.models.generate_content.return_value = mock_response
 
         rewriter = QueryRewriter()
         result = rewriter.rewrite(
@@ -64,17 +64,19 @@ class TestQueryRewriter:
         )
         assert result == "Rewritten query"
 
-    @patch("src.retrieval.query_rewriter.genai.GenerativeModel")
-    def test_rewrite_no_history_uses_default_history(self, mock_model):
+    @patch("src.retrieval.query_rewriter._get_client")
+    def test_rewrite_no_history_uses_default_history(self, mock_client):
         from src.retrieval.query_rewriter import QueryRewriter
 
         mock_response = MagicMock()
         mock_response.text = "Rewritten without history"
-        mock_model.return_value.generate_content.return_value = mock_response
+        mock_client.return_value.models.generate_content.return_value = mock_response
 
         rewriter = QueryRewriter()
         result = rewriter.rewrite(question="What is FastAPI?", history="")
         assert result == "Rewritten without history"
-        prompt = mock_model.return_value.generate_content.call_args.args[0]
+        prompt = mock_client.return_value.models.generate_content.call_args.kwargs[
+            "contents"
+        ]
         assert "No prior conversation." in prompt
         assert "What is FastAPI?" in prompt

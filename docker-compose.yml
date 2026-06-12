@@ -3,6 +3,7 @@ services:
   # ── FastAPI RAG Application ─────────────────────────────────────────────────
   # ── FastAPI RAG Application ─────────────────────────────────────────────────
   fastapi:
+    image: rag-system:latest
     build: .
     container_name: rag-fastapi
     restart: unless-stopped
@@ -16,8 +17,6 @@ services:
       - ./data:/app/data
     depends_on:
       mlflow:
-        condition: service_healthy
-      prometheus:
         condition: service_healthy
     networks:
       - rag-network
@@ -106,7 +105,7 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_ANALYTICS_REPORTING_ENABLED=false
     volumes:

@@ -11,11 +11,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Configure Gemini ──────────────────────────────────────────────────────────
-api_key = os.getenv("GOOGLE_API_KEY")
-if not api_key:
-    raise ValueError("❌ GOOGLE_API_KEY not found. Check your .env file.")
-
-client = genai.Client(api_key=api_key)
+def _get_client():
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY not found. Check your .env file.")
+    return genai.Client(api_key=api_key)
 
 
 class GeminiGenerator:
@@ -34,6 +34,7 @@ class GeminiGenerator:
             temperature       = self.temperature,
             max_output_tokens = 1024,
         )
+        self.client = _get_client()
         logger.info(f"✅ Gemini model loaded: {self.model_name}")
 
     def generate_answer(self, prompt: str) -> str:
@@ -44,7 +45,7 @@ class GeminiGenerator:
         logger.info(f"🔄 Generating answer for prompt ({len(prompt)} chars)...")
 
         try:
-            response = client.models.generate_content(
+            response = self.client.models.generate_content(
                 model    = self.model_name,
                 contents = prompt,
                 config   = self.config,
@@ -65,7 +66,7 @@ class GeminiGenerator:
         logger.info(f"🔄 Streaming answer for prompt ({len(prompt)} chars)...")
 
         try:
-            for chunk in client.models.generate_content_stream(
+            for chunk in self.client.models.generate_content_stream(
                 model    = self.model_name,
                 contents = prompt,
                 config   = self.config,

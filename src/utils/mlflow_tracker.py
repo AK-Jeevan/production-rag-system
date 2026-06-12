@@ -16,7 +16,14 @@ class MLflowTracker:
         return self.run
 
     def log_rag_parameters(
-        self, chunk_size, chunk_overlap, embedding_model, top_k, vector_db, llm_model
+        self,
+        chunk_size,
+        chunk_overlap,
+        embedding_model,
+        top_k,
+        vector_db,
+        llm_model,
+        prompt_name=None,
     ):
         mlflow.log_param("chunk_size", chunk_size)
         mlflow.log_param("chunk_overlap", chunk_overlap)
@@ -24,6 +31,8 @@ class MLflowTracker:
         mlflow.log_param("top_k", top_k)
         mlflow.log_param("vector_db", vector_db)
         mlflow.log_param("llm_model", llm_model)
+        if prompt_name is not None:
+            mlflow.log_param("prompt_name", prompt_name)
 
     def log_latency_metrics(self, retrieval_latency, generation_latency, total_latency):
         mlflow.log_metric("retrieval_latency", retrieval_latency)
