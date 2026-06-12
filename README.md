@@ -2,9 +2,9 @@
 
 [![RAG CI Pipeline](https://github.com/AK-Jeevan/production-rag-system/actions/workflows/ci.yml/badge.svg)](https://github.com/AK-Jeevan/production-rag-system/actions/workflows/ci.yml)
 
-Production RAG System is a production-oriented Retrieval-Augmented Generation application built with FastAPI, LangChain, FAISS, MLflow, DVC, Prometheus, and Grafana. It is designed to ingest documents, index them, retrieve relevant context, rerank results, and generate grounded answers with Google Gemini. The project is containerized, test-covered, and structured to look like a real-world MLOps system that can be demonstrated in interviews or adapted for deployment.
+Production RAG System is a production-oriented Retrieval-Augmented Generation platform built with FastAPI, LangChain, FAISS, MLflow, DVC, Prometheus, and Grafana. It is designed to ingest documents, index them, retrieve relevant context, rerank results, and generate grounded answers with Google Gemini. The project is containerized, test-covered, and organized to reflect a real-world MLOps service suitable for interviews, demos, and deployment.
 
-## Why This Project Stands Out
+## Key Highlights
 
 - End-to-end RAG pipeline with ingestion, retrieval, reranking, prompt building, generation, and conversational memory.
 - FastAPI backend with REST endpoints for query, streaming query, uploads, feedback, health, and metrics.
@@ -130,20 +130,24 @@ python run_cli.py
 pytest
 ```
 
-## Docker
+## Deployment
 
-Build and run the app container:
+This project is designed to run locally with Docker and to scale into a cloud-hosted deployment without changing the application architecture.
+
+### Container Image
+
+Build and run the application container directly when you want a minimal runtime footprint:
 
 ```bash
 docker build -t production-rag-system .
 docker run -p 8000:8000 --env-file .env production-rag-system
 ```
 
-## Docker Compose Stack
+### Docker Compose Stack
 
-The included `docker-compose.yml` starts the API plus supporting services:
+Use the included `docker-compose.yml` to start the API alongside the supporting services used in the project:
 
-- FastAPI app on port `8000`
+- FastAPI application on port `8000`
 - MLflow on port `5000`
 - Prometheus on port `9090`
 - Grafana on port `3000`
@@ -153,6 +157,29 @@ Start the full stack with:
 ```bash
 docker compose up --build
 ```
+
+### AWS Reference Deployment
+
+The repository is container-ready, so the most practical AWS deployment path is to run the service as a Docker image behind managed infrastructure.
+
+- Amazon ECR for container image storage
+- Amazon ECS Fargate or EC2 for application hosting
+- Application Load Balancer for traffic distribution
+- Amazon S3 for uploaded documents, processed artifacts, and DVC remote storage
+- AWS Secrets Manager or SSM Parameter Store for `GOOGLE_API_KEY` and other secrets
+- Amazon CloudWatch for logs and infrastructure monitoring
+- A separate MLflow deployment if persistent experiment tracking is required
+
+Recommended deployment flow:
+
+1. Build the Docker image in CI or locally.
+2. Push the image to Amazon ECR.
+3. Deploy the image to ECS behind an Application Load Balancer.
+4. Inject secrets and runtime configuration through AWS Secrets Manager or Parameter Store.
+5. Store durable document and artifact data in S3.
+6. Route logs and metrics to CloudWatch while keeping Prometheus and Grafana if you want richer self-hosted observability.
+
+For interview or production planning, the strongest message is that the application remains container-native, while AWS provides the hosting, storage, secrets, and orchestration layers.
 
 ## API Endpoints
 
@@ -171,37 +198,6 @@ This project is built around reproducibility.
 - Document assets can be managed with DVC.
 - MLflow records pipeline parameters, latency, token counts, and estimated cost.
 - `models/` contains local vector-store artifacts for FAISS.
-
-## AWS Deployment
-
-This repository is container-ready, so the cleanest AWS path is a Docker-based deployment. The project does not currently include Terraform, CloudFormation, or CDK, so the following is a practical deployment architecture you can describe in an interview or implement next.
-
-### Recommended AWS Architecture
-
-- Amazon ECR for storing the Docker image.
-- Amazon ECS Fargate or EC2 for running the FastAPI container.
-- Application Load Balancer in front of the service.
-- Amazon S3 for uploaded documents, processed artifacts, and DVC remote storage.
-- Amazon CloudWatch for container logs and infrastructure monitoring.
-- AWS Secrets Manager or SSM Parameter Store for `GOOGLE_API_KEY` and other secrets.
-- Separate ECS service or EC2 instance for MLflow tracking if you want persistent experiment tracking in AWS.
-- Amazon EFS or S3-backed volumes if you need persistent shared storage for artifacts.
-
-### Deployment Flow
-
-1. Build the Docker image locally or in CI.
-2. Push the image to Amazon ECR.
-3. Deploy the image to ECS Fargate behind an Application Load Balancer.
-4. Inject secrets and environment variables through AWS Secrets Manager or Parameter Store.
-5. Store durable data in S3 and point DVC remote storage there.
-6. Route logs and metrics to CloudWatch; keep Prometheus and Grafana if you want a richer self-hosted observability stack.
-
-### Interview Notes for AWS
-
-- The app is already containerized, which makes ECS deployment straightforward.
-- The LLM is external to AWS: the service calls Google Gemini through API credentials.
-- AWS is used for hosting, storage, secrets, logging, and service orchestration, not for hosting the model itself.
-- If you want a more enterprise-style story, mention blue/green ECS deployments, autoscaling, and centralized logging.
 
 ## Testing and Quality
 
