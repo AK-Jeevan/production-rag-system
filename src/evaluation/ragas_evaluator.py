@@ -13,7 +13,6 @@ and aggregate them into a summary report.
 
 import json
 import csv
-import os
 import logging
 from pathlib import Path
 from types import SimpleNamespace

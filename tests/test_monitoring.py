@@ -1,18 +1,4 @@
-import pytest
 from prometheus_client import REGISTRY
-from src.monitoring.metrics import (
-    REQUEST_COUNT,
-    ERROR_COUNT,
-    DOCUMENT_UPLOAD_COUNT,
-    QUERY_LATENCY,
-    RETRIEVAL_LATENCY,
-    RERANK_LATENCY,
-    GENERATION_LATENCY,
-    INPUT_TOKENS,
-    OUTPUT_TOKENS,
-    ESTIMATED_COST,
-    PIPELINE_INFO,
-)
 
 
 def get_metric_names():
