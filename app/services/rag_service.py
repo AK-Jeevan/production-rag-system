@@ -25,13 +25,20 @@ class RAGService:
             logger.error(f"❌ Failed to initialize RAGService: {e}")
             raise
 
-    def query(self, question: str, top_k: Optional[int] = None) -> dict:
+    def query(
+        self,
+        question: str,
+        top_k: Optional[int] = None,
+        prompt_name: Optional[str] = None,
+    ) -> dict:
         if not question or not question.strip():
             raise ValueError("Question must not be empty.")
 
         try:
             logger.info(f"🔍 Processing query: {question!r}")
-            result = self.pipeline.ask(question)
+            result = self.pipeline.ask(
+                question, top_k=top_k, prompt_name=prompt_name
+            )
             logger.info("✅ Query processed successfully.")
             return result
         except Exception as e:
