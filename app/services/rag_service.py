@@ -36,9 +36,7 @@ class RAGService:
 
         try:
             logger.info(f"🔍 Processing query: {question!r}")
-            result = self.pipeline.ask(
-                question, top_k=top_k, prompt_name=prompt_name
-            )
+            result = self.pipeline.ask(question, top_k=top_k, prompt_name=prompt_name)
             logger.info("✅ Query processed successfully.")
             return result
         except Exception as e:
