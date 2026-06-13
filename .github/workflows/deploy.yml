@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      IMAGE_NAME: production-rag-system
-      IMAGE_TAG: ${{ github.sha }}
+      IMAGE_NAME:     production-rag-system
+      IMAGE_TAG:      ${{ github.sha }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
     steps:
@@ -36,32 +36,44 @@ jobs:
           docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
 
       - name: Save Docker Image as Tarball
-        run: docker save $IMAGE_NAME:latest | gzip > production-rag-system.tar.gz
+        run: |
+          docker save $IMAGE_NAME:latest | gzip > production-rag-system.tar.gz
 
       - name: Bundle Deployment Files
         run: |
-          tar -czf deploy-bundle.tar.gz production-rag-system.tar.gz docker-compose.yml nginx/ prometheus/
+          tar -czf deploy-bundle.tar.gz \
+            production-rag-system.tar.gz \
+            docker-compose.yml \
+            nginx/ \
+            prometheus/
 
       - name: Prepare Remote Directory and Upload Bundle
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key
+          # Decode key properly — avoids newline corruption from secret expansion
+          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
           SSH_OPTS="-i /tmp/deploy_key -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ConnectTimeout=30"
           REMOTE="${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}"
           REMOTE_DIR="/home/${{ secrets.EC2_USER }}/production-rag-system"
 
-          # 1. Create directory with correct ownership via SSH
+          # 1. Verify SSH connection
+          ssh $SSH_OPTS "$REMOTE" "echo '✅ SSH connection OK'"
+
+          # 2. Create directory with correct ownership
           ssh $SSH_OPTS "$REMOTE" \
             "mkdir -p $REMOTE_DIR && \
-             sudo chown -R ${{ secrets.EC2_USER }}:${{ secrets.EC2_USER }} $REMOTE_DIR && \
-             chmod 755 $REMOTE_DIR"
+             sudo chown -R \$USER:\$USER $REMOTE_DIR && \
+             chmod 755 $REMOTE_DIR && \
+             touch $REMOTE_DIR/.write_test && \
+             rm $REMOTE_DIR/.write_test && \
+             echo '✅ Directory writable'"
 
-          # 2. Copy the bundle via SCP
+          # 3. Upload bundle via SCP
           scp $SSH_OPTS deploy-bundle.tar.gz "$REMOTE:$REMOTE_DIR/"
 
-          # 3. Verify the file landed
-          ssh $SSH_OPTS "$REMOTE" "ls -la $REMOTE_DIR/deploy-bundle.tar.gz"
+          # 4. Verify file landed
+          ssh $SSH_OPTS "$REMOTE" "ls -lh $REMOTE_DIR/deploy-bundle.tar.gz && echo '✅ Bundle uploaded'"
 
           rm -f /tmp/deploy_key
 
@@ -70,37 +82,61 @@ jobs:
         with:
           host:     ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key:      ${{ secrets.EC2_SSH_KEY }}
+          key:      ${{ secrets.EC2_SSH_KEY_B64 }}
           envs:     GOOGLE_API_KEY
           script: |
             set -eu
-            cd /home/${{ secrets.EC2_USER }}/production-rag-system
+            REMOTE_DIR="/home/$USER/production-rag-system"
+            cd $REMOTE_DIR
+
+            echo "📦 Extracting bundle..."
             tar -xzf deploy-bundle.tar.gz
             rm -f deploy-bundle.tar.gz
+
+            echo "📝 Writing .env file..."
             printf 'GOOGLE_API_KEY=%s\n' "$GOOGLE_API_KEY" > .env
+
+            echo "🐳 Loading Docker image..."
             docker load < production-rag-system.tar.gz
             rm -f production-rag-system.tar.gz
+
+            echo "🛑 Stopping existing containers..."
             docker compose down --remove-orphans
+
+            echo "🚀 Starting updated containers..."
             docker compose up -d --no-build
+
+            echo "🧹 Cleaning up old images..."
             docker image prune -f
+
+            echo "✅ Deployment complete."
 
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host:     ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key:      ${{ secrets.EC2_SSH_KEY }}
+          key:      ${{ secrets.EC2_SSH_KEY_B64 }}
           script: |
-            cd /home/${{ secrets.EC2_USER }}/production-rag-system
+            set -eu
+            REMOTE_DIR="/home/$USER/production-rag-system"
+            cd $REMOTE_DIR
+
+            echo "🔍 Running containers:"
             docker compose ps
+
+            echo "⏳ Waiting for health check..."
             for attempt in $(seq 1 12); do
               if curl --fail --silent http://localhost:8000/api/v1/health; then
-                echo "✅ Deployment health check passed."
+                echo ""
+                echo "✅ Health check passed on attempt $attempt."
                 exit 0
               fi
               echo "⏳ Attempt $attempt/12 — retrying in 10s..."
               sleep 10
             done
-            echo "❌ Deployment health check failed."
+
+            echo "❌ Health check failed after 12 attempts."
+            echo "📋 Container logs:"
             docker compose logs --tail=100 fastapi
             exit 1
