@@ -8,49 +8,45 @@ on:
 
 jobs:
   deploy:
-    name: Deploy RAG System to EC2
+    name: Build, Push & Deploy RAG System
     runs-on: ubuntu-latest
 
     env:
-      IMAGE_NAME: production-rag-system
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/production-rag-system
       IMAGE_TAG:  ${{ github.sha }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ secrets.AWS_REGION }}
+      # ── Step 1: Build ────────────────────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
+          cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+      # ── Step 2: Decode SSH Key ───────────────────────────────────────────────
       - name: Decode SSH Key
         run: |
           echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker Image
-        run: |
-          docker build -t $IMAGE_NAME:$IMAGE_TAG .
-          docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
-
-      - name: Save Docker Image as Tarball
-        run: |
-          docker save $IMAGE_NAME:latest | gzip > production-rag-system.tar.gz
-
-      - name: Bundle Deployment Files
-        run: |
-          tar -czf deploy-bundle.tar.gz \
-            production-rag-system.tar.gz \
-            docker-compose.yml \
-            nginx/ \
-            prometheus/
-
+      # ── Step 3: Free Disk Space on EC2 ──────────────────────────────────────
       - name: Free Disk Space on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -59,15 +55,9 @@ jobs:
           key:      ${{ secrets.EC2_SSH_KEY_B64 }}
           script: |
             set -e
-            echo "🧹 Freeing disk space on EC2 before deploy..."
+            echo "🧹 Freeing disk space on EC2..."
 
             docker system prune -af --volumes
-
-            [ -d "/home/$USER/actions-runner" ] && {
-              rm -rf /home/$USER/actions-runner/_diag/*        || true
-              rm -rf /home/$USER/actions-runner/cached/*       || true
-              rm -rf /home/$USER/actions-runner/_work/_temp/*  || true
-            }
 
             sudo apt-get clean
             sudo apt-get autoremove -y
@@ -75,27 +65,8 @@ jobs:
             echo "💾 Disk usage after cleanup:"
             df -h
 
-      - name: Prepare Remote Directory and Upload Bundle
-        run: |
-          SSH_OPTS="-i /tmp/deploy_key -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ConnectTimeout=30"
-          REMOTE="${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}"
-          REMOTE_DIR="/home/${{ secrets.EC2_USER }}/production-rag-system"
-
-          ssh $SSH_OPTS "$REMOTE" "echo '✅ SSH connection OK'"
-
-          ssh $SSH_OPTS "$REMOTE" \
-            "mkdir -p $REMOTE_DIR && \
-             sudo chown -R \$USER:\$USER $REMOTE_DIR && \
-             chmod 755 $REMOTE_DIR && \
-             touch $REMOTE_DIR/.write_test && \
-             rm $REMOTE_DIR/.write_test && \
-             echo '✅ Directory writable'"
-
-          scp $SSH_OPTS deploy-bundle.tar.gz "$REMOTE:$REMOTE_DIR/"
-
-          ssh $SSH_OPTS "$REMOTE" "ls -lh $REMOTE_DIR/deploy-bundle.tar.gz && echo '✅ Bundle uploaded'"
-
-      - name: Extract and Deploy on EC2
+      # ── Step 4: Deploy on EC2 ────────────────────────────────────────────────
+      - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host:     ${{ secrets.EC2_HOST }}
@@ -104,23 +75,26 @@ jobs:
           script: |
             set -eu
             REMOTE_DIR="/home/$USER/production-rag-system"
+            mkdir -p $REMOTE_DIR
             cd $REMOTE_DIR
 
-            echo "📦 Extracting bundle..."
-            tar -xzf deploy-bundle.tar.gz
-            rm -f deploy-bundle.tar.gz
+            echo "🔐 Logging into DockerHub..."
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
+              -u "${{ secrets.DOCKERHUB_USERNAME }}" \
+              --password-stdin
+
+            echo "📥 Pulling latest image..."
+            docker pull ${{ env.IMAGE_NAME }}:latest
 
             echo "📝 Writing .env file..."
             printf 'GOOGLE_API_KEY=%s\n' "${{ secrets.GOOGLE_API_KEY }}" > .env
-
-            echo "🐳 Loading Docker image..."
-            docker load < production-rag-system.tar.gz
-            rm -f production-rag-system.tar.gz
 
             echo "🛑 Stopping existing containers..."
             docker compose down --remove-orphans
 
             echo "🚀 Starting updated containers..."
+            IMAGE_NAME=${{ env.IMAGE_NAME }} \
+            IMAGE_TAG=latest \
             docker compose up -d --no-build
 
             echo "🧹 Cleaning up old images..."
@@ -128,6 +102,7 @@ jobs:
 
             echo "✅ Deployment complete."
 
+      # ── Step 5: Verify Deployment ────────────────────────────────────────────
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -136,11 +111,9 @@ jobs:
           key:      ${{ secrets.EC2_SSH_KEY_B64 }}
           script: |
             set -eu
-            REMOTE_DIR="/home/$USER/production-rag-system"
-            cd $REMOTE_DIR
 
             echo "🔍 Running containers:"
-            docker compose ps
+            docker compose -f /home/$USER/production-rag-system/docker-compose.yml ps
 
             echo "⏳ Waiting for health check..."
             for attempt in $(seq 1 12); do
@@ -155,9 +128,10 @@ jobs:
 
             echo "❌ Health check failed after 12 attempts."
             echo "📋 Container logs:"
-            docker compose logs --tail=100 fastapi
+            docker compose -f /home/$USER/production-rag-system/docker-compose.yml logs --tail=100 fastapi
             exit 1
 
+      # ── Step 6: Cleanup ──────────────────────────────────────────────────────
       - name: Cleanup SSH Key
         if: always()
         run: |
