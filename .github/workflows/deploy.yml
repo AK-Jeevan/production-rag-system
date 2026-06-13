@@ -14,12 +14,13 @@ jobs:
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/production-rag-system
       IMAGE_TAG:  ${{ github.sha }}
+      REMOTE_DIR: /home/${{ secrets.EC2_USER }}/production-rag-system
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # ── Step 1: Build ────────────────────────────────────────────────────────
+      # ── Step 1: Build & Push ─────────────────────────────────────────────────
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -33,26 +34,50 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
+          push:    true
           tags: |
             ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
             ${{ env.IMAGE_NAME }}:latest
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
           cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
 
-      # ── Step 2: Decode SSH Key ───────────────────────────────────────────────
-      - name: Decode SSH Key
+      # ── Step 2: Write SSH Key ────────────────────────────────────────────────
+      - name: Write SSH Key
         run: |
-          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d > /tmp/deploy_key
+          echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      # ── Step 3: Free Disk Space on EC2 ──────────────────────────────────────
+          # Verify key was written correctly
+          if [ ! -s /tmp/deploy_key ]; then
+            echo "❌ SSH key is empty. Check EC2_SSH_KEY secret."
+            exit 1
+          fi
+
+          # Verify key format
+          if ! head -1 /tmp/deploy_key | grep -q "BEGIN"; then
+            echo "❌ SSH key format invalid. Must start with -----BEGIN ... PRIVATE KEY-----"
+            exit 1
+          fi
+
+          echo "✅ SSH key written successfully."
+
+      # ── Step 3: Upload docker-compose.yml to EC2 ────────────────────────────
+      - name: Upload docker-compose.yml to EC2
+        run: |
+          SSH_OPTS="-i /tmp/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=60"
+          REMOTE="${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}"
+
+          ssh $SSH_OPTS "$REMOTE" "mkdir -p ${{ env.REMOTE_DIR }}"
+          scp $SSH_OPTS docker-compose.yml "$REMOTE:${{ env.REMOTE_DIR }}/docker-compose.yml"
+          echo "✅ docker-compose.yml uploaded."
+
+      # ── Step 4: Free Disk Space on EC2 ──────────────────────────────────────
       - name: Free Disk Space on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host:     ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key:      ${{ secrets.EC2_SSH_KEY_B64 }}
+          key_path: /tmp/deploy_key
           script: |
             set -e
             echo "🧹 Freeing disk space on EC2..."
@@ -65,18 +90,16 @@ jobs:
             echo "💾 Disk usage after cleanup:"
             df -h
 
-      # ── Step 4: Deploy on EC2 ────────────────────────────────────────────────
+      # ── Step 5: Deploy on EC2 ────────────────────────────────────────────────
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host:     ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key:      ${{ secrets.EC2_SSH_KEY_B64 }}
+          key_path: /tmp/deploy_key
           script: |
             set -eu
-            REMOTE_DIR="/home/$USER/production-rag-system"
-            mkdir -p $REMOTE_DIR
-            cd $REMOTE_DIR
+            cd ${{ env.REMOTE_DIR }}
 
             echo "🔐 Logging into DockerHub..."
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
@@ -84,17 +107,19 @@ jobs:
               --password-stdin
 
             echo "📥 Pulling latest image..."
-            docker pull ${{ env.IMAGE_NAME }}:latest
+            docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
             echo "📝 Writing .env file..."
-            printf 'GOOGLE_API_KEY=%s\n' "${{ secrets.GOOGLE_API_KEY }}" > .env
+            cat > .env <<EOF
+            GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+            IMAGE_NAME=${{ env.IMAGE_NAME }}
+            IMAGE_TAG=${{ env.IMAGE_TAG }}
+            EOF
 
             echo "🛑 Stopping existing containers..."
             docker compose down --remove-orphans
 
             echo "🚀 Starting updated containers..."
-            IMAGE_NAME=${{ env.IMAGE_NAME }} \
-            IMAGE_TAG=latest \
             docker compose up -d --no-build
 
             echo "🧹 Cleaning up old images..."
@@ -102,18 +127,19 @@ jobs:
 
             echo "✅ Deployment complete."
 
-      # ── Step 5: Verify Deployment ────────────────────────────────────────────
+      # ── Step 6: Verify Deployment ────────────────────────────────────────────
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host:     ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key:      ${{ secrets.EC2_SSH_KEY_B64 }}
+          key_path: /tmp/deploy_key
           script: |
             set -eu
+            cd ${{ env.REMOTE_DIR }}
 
             echo "🔍 Running containers:"
-            docker compose -f /home/$USER/production-rag-system/docker-compose.yml ps
+            docker compose ps
 
             echo "⏳ Waiting for health check..."
             for attempt in $(seq 1 12); do
@@ -128,11 +154,12 @@ jobs:
 
             echo "❌ Health check failed after 12 attempts."
             echo "📋 Container logs:"
-            docker compose -f /home/$USER/production-rag-system/docker-compose.yml logs --tail=100 fastapi
+            docker compose logs --tail=100 fastapi
             exit 1
 
-      # ── Step 6: Cleanup ──────────────────────────────────────────────────────
+      # ── Step 7: Cleanup ──────────────────────────────────────────────────────
       - name: Cleanup SSH Key
         if: always()
         run: |
           rm -f /tmp/deploy_key
+          echo "✅ SSH key cleaned up."
