@@ -50,6 +50,10 @@ jobs:
           key:      ${{ secrets.EC2_SSH_KEY }}
           script: |
             mkdir -p /home/${{ secrets.EC2_USER }}/production-rag-system
+            sudo chown -R ${{ secrets.EC2_USER }}:${{ secrets.EC2_USER }} /home/${{ secrets.EC2_USER }}/production-rag-system
+            chmod 755 /home/${{ secrets.EC2_USER }}/production-rag-system
+            # Verify the directory is writable
+            touch /home/${{ secrets.EC2_USER }}/production-rag-system/.write-test && rm /home/${{ secrets.EC2_USER }}/production-rag-system/.write-test
 
       - name: Copy Deployment Bundle to EC2       # ← replaced appleboy/scp-action
         env:
