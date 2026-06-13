@@ -54,10 +54,10 @@ jobs:
           # 1. Create directory with correct ownership via SSH
           ssh $SSH_OPTS "$REMOTE" \
             "mkdir -p $REMOTE_DIR && \
-             sudo chown -R \$USER:\$USER $REMOTE_DIR && \
+             sudo chown -R ${{ secrets.EC2_USER }}:${{ secrets.EC2_USER }} $REMOTE_DIR && \
              chmod 755 $REMOTE_DIR"
 
-          # 2. Copy the bundle via SCP using the exact same key file
+          # 2. Copy the bundle via SCP
           scp $SSH_OPTS deploy-bundle.tar.gz "$REMOTE:$REMOTE_DIR/"
 
           # 3. Verify the file landed
@@ -65,7 +65,7 @@ jobs:
 
           rm -f /tmp/deploy_key
 
-      - name: Extract and Deploy on EC2 via SSH
+      - name: Extract and Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host:     ${{ secrets.EC2_HOST }}
