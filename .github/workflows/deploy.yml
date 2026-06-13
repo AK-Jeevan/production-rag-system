@@ -42,34 +42,26 @@ jobs:
         run: |
           tar -czf deploy-bundle.tar.gz production-rag-system.tar.gz docker-compose.yml nginx/ prometheus/
 
-      - name: Create Target Directory on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host:     ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key:      ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            mkdir -p /home/${{ secrets.EC2_USER }}/production-rag-system
-            sudo chown -R ${{ secrets.EC2_USER }}:${{ secrets.EC2_USER }} /home/${{ secrets.EC2_USER }}/production-rag-system
-            chmod 755 /home/${{ secrets.EC2_USER }}/production-rag-system
-            # Verify the directory is writable
-            touch /home/${{ secrets.EC2_USER }}/production-rag-system/.write-test && rm /home/${{ secrets.EC2_USER }}/production-rag-system/.write-test
-
-      - name: Copy Deployment Bundle to EC2       # ← replaced appleboy/scp-action
-        env:
-          EC2_HOST:    ${{ secrets.EC2_HOST }}
-          EC2_USER:    ${{ secrets.EC2_USER }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+      - name: Prepare Remote Directory and Upload Bundle
         run: |
-          echo "$EC2_SSH_KEY" > /tmp/deploy_key
+          echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-          scp -i /tmp/deploy_key \
-              -o StrictHostKeyChecking=no \
-              -o ServerAliveInterval=60 \
-              -o ConnectTimeout=30 \
-              deploy-bundle.tar.gz \
-              $EC2_USER@$EC2_HOST:/home/$EC2_USER/production-rag-system/
+          SSH_OPTS="-i /tmp/deploy_key -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ConnectTimeout=30"
+          REMOTE="${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}"
+          REMOTE_DIR="/home/${{ secrets.EC2_USER }}/production-rag-system"
+
+          # 1. Create directory with correct ownership via SSH
+          ssh $SSH_OPTS "$REMOTE" \
+            "mkdir -p $REMOTE_DIR && \
+             sudo chown -R \$USER:\$USER $REMOTE_DIR && \
+             chmod 755 $REMOTE_DIR"
+
+          # 2. Copy the bundle via SCP using the exact same key file
+          scp $SSH_OPTS deploy-bundle.tar.gz "$REMOTE:$REMOTE_DIR/"
+
+          # 3. Verify the file landed
+          ssh $SSH_OPTS "$REMOTE" "ls -la $REMOTE_DIR/deploy-bundle.tar.gz"
 
           rm -f /tmp/deploy_key
 
