@@ -12,9 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      IMAGE_NAME:     production-rag-system
-      IMAGE_TAG:      ${{ github.sha }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      IMAGE_NAME: production-rag-system
+      IMAGE_TAG:  ${{ github.sha }}
 
     steps:
       - name: Checkout Repository
@@ -47,9 +46,32 @@ jobs:
             nginx/ \
             prometheus/
 
+      - name: Free Disk Space on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key:      ${{ secrets.EC2_SSH_KEY_B64 }}
+          script: |
+            set -e
+            echo "🧹 Freeing disk space on EC2 before deploy..."
+
+            docker system prune -af --volumes
+
+            [ -d "/home/$USER/actions-runner" ] && {
+              rm -rf /home/$USER/actions-runner/_diag/*   || true
+              rm -rf /home/$USER/actions-runner/cached/*  || true
+              rm -rf /home/$USER/actions-runner/_work/_temp/* || true
+            }
+
+            sudo apt-get clean
+            sudo apt-get autoremove -y
+
+            echo "💾 Disk usage after cleanup:"
+            df -h
+
       - name: Prepare Remote Directory and Upload Bundle
         run: |
-          # Decode key properly — avoids newline corruption from secret expansion
           echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
@@ -57,10 +79,8 @@ jobs:
           REMOTE="${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}"
           REMOTE_DIR="/home/${{ secrets.EC2_USER }}/production-rag-system"
 
-          # 1. Verify SSH connection
           ssh $SSH_OPTS "$REMOTE" "echo '✅ SSH connection OK'"
 
-          # 2. Create directory with correct ownership
           ssh $SSH_OPTS "$REMOTE" \
             "mkdir -p $REMOTE_DIR && \
              sudo chown -R \$USER:\$USER $REMOTE_DIR && \
@@ -69,10 +89,8 @@ jobs:
              rm $REMOTE_DIR/.write_test && \
              echo '✅ Directory writable'"
 
-          # 3. Upload bundle via SCP
           scp $SSH_OPTS deploy-bundle.tar.gz "$REMOTE:$REMOTE_DIR/"
 
-          # 4. Verify file landed
           ssh $SSH_OPTS "$REMOTE" "ls -lh $REMOTE_DIR/deploy-bundle.tar.gz && echo '✅ Bundle uploaded'"
 
           rm -f /tmp/deploy_key
@@ -83,7 +101,6 @@ jobs:
           host:     ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key:      ${{ secrets.EC2_SSH_KEY_B64 }}
-          envs:     GOOGLE_API_KEY
           script: |
             set -eu
             REMOTE_DIR="/home/$USER/production-rag-system"
@@ -94,7 +111,7 @@ jobs:
             rm -f deploy-bundle.tar.gz
 
             echo "📝 Writing .env file..."
-            printf 'GOOGLE_API_KEY=%s\n' "$GOOGLE_API_KEY" > .env
+            printf 'GOOGLE_API_KEY=%s\n' "${{ secrets.GOOGLE_API_KEY }}" > .env
 
             echo "🐳 Loading Docker image..."
             docker load < production-rag-system.tar.gz
