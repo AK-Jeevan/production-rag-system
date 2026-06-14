@@ -71,11 +71,14 @@ jobs:
             docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
             echo "📝 Writing .env file..."
-            cat > .env <<EOF
-            GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+            cat > .env << EOF
             IMAGE_NAME=${{ env.IMAGE_NAME }}
             IMAGE_TAG=${{ env.IMAGE_TAG }}
+            GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
             EOF
+
+            echo "✅ .env written:"
+            cat .env
 
             echo "🛑 Stopping existing containers..."
             docker compose down --remove-orphans

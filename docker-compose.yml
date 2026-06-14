@@ -3,7 +3,7 @@ services:
   # ── FastAPI RAG Application ─────────────────────────────────────────────────
   # ── FastAPI RAG Application ─────────────────────────────────────────────────
   fastapi:
-    image: rag-system:latest
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
     build: .
     container_name: rag-fastapi
     restart: unless-stopped
