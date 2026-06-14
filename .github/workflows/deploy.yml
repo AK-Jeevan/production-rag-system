@@ -45,6 +45,7 @@ jobs:
       - name: Write SSH Key
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key
+
           chmod 600 /tmp/deploy_key
 
           # Verify key was written correctly
@@ -70,26 +71,7 @@ jobs:
           ssh $SSH_OPTS "$REMOTE" "mkdir -p ${{ env.REMOTE_DIR }}"
           scp $SSH_OPTS docker-compose.yml "$REMOTE:${{ env.REMOTE_DIR }}/docker-compose.yml"
           echo "✅ docker-compose.yml uploaded."
-
-      # ── Step 4: Free Disk Space on EC2 ──────────────────────────────────────
-      - name: Free Disk Space on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host:     ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key_path: /tmp/deploy_key
-          script: |
-            set -e
-            echo "🧹 Freeing disk space on EC2..."
-
-            docker system prune -af --volumes
-
-            sudo apt-get clean
-            sudo apt-get autoremove -y
-
-            echo "💾 Disk usage after cleanup:"
-            df -h
-
+          
       # ── Step 5: Deploy on EC2 ────────────────────────────────────────────────
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
