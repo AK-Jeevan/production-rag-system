@@ -44,17 +44,14 @@ jobs:
       # ── Step 2: Write SSH Key ────────────────────────────────────────────────
       - name: Write SSH Key
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key
-
+          printf "%s" "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-          # Verify key was written correctly
           if [ ! -s /tmp/deploy_key ]; then
             echo "❌ SSH key is empty. Check EC2_SSH_KEY secret."
             exit 1
           fi
 
-          # Verify key format
           if ! head -1 /tmp/deploy_key | grep -q "BEGIN"; then
             echo "❌ SSH key format invalid. Must start with -----BEGIN ... PRIVATE KEY-----"
             exit 1
@@ -62,7 +59,15 @@ jobs:
 
           echo "✅ SSH key written successfully."
 
-      # ── Step 3: Upload docker-compose.yml to EC2 ────────────────────────────
+      # ── Step 3: Verify SSH Key ───────────────────────────────────────────────
+      - name: Verify SSH Key
+        run: |
+          echo "🔍 Verifying SSH key file..."
+          ls -l /tmp/deploy_key
+          head -5 /tmp/deploy_key
+          echo "✅ SSH key verification complete."
+
+      # ── Step 4: Upload docker-compose.yml to EC2 ────────────────────────────
       - name: Upload docker-compose.yml to EC2
         run: |
           SSH_OPTS="-i /tmp/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=60"
@@ -71,7 +76,7 @@ jobs:
           ssh $SSH_OPTS "$REMOTE" "mkdir -p ${{ env.REMOTE_DIR }}"
           scp $SSH_OPTS docker-compose.yml "$REMOTE:${{ env.REMOTE_DIR }}/docker-compose.yml"
           echo "✅ docker-compose.yml uploaded."
-          
+
       # ── Step 5: Deploy on EC2 ────────────────────────────────────────────────
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
