@@ -1,0 +1,65 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name:      rag-ingress
+  namespace: production-rag-system
+
+  labels:
+    app.kubernetes.io/name:       rag-ingress
+    app.kubernetes.io/component:  networking
+    app.kubernetes.io/managed-by: kubectl
+    environment:                  production
+
+  annotations:
+    description: "Ingress routing for the Production RAG System"
+    owner:        "ml-platform-team"
+
+    # ── Ingress Controller ───────────────────────────────────────────────────
+    kubernetes.io/ingress.class:             nginx
+    nginx.ingress.kubernetes.io/proxy-read-timeout:    "300"  # allow long LLM generation
+    nginx.ingress.kubernetes.io/proxy-send-timeout:    "300"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+
+    # ── SSE / Streaming ──────────────────────────────────────────────────────
+    nginx.ingress.kubernetes.io/proxy-buffering:          "off"  # required for /query-stream SSE
+    nginx.ingress.kubernetes.io/proxy-http-version:       "1.1"
+    nginx.ingress.kubernetes.io/proxy-request-buffering:  "off"
+
+    # ── Body Size ────────────────────────────────────────────────────────────
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m"           # allow up to 20MB uploads
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+    - host: rag.local
+      http:
+        paths:
+
+          # ── FastAPI RAG API ────────────────────────────────────────────────
+          - path:     /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: fastapi-service
+                port:
+                  number: 80
+
+          # ── MLflow Tracking UI ─────────────────────────────────────────────
+          - path:     /mlflow
+            pathType: Prefix
+            backend:
+              service:
+                name: mlflow-service
+                port:
+                  number: 5000
+
+          # ── Grafana Dashboard ──────────────────────────────────────────────
+          - path:     /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana-service
+                port:
+                  number: 3000

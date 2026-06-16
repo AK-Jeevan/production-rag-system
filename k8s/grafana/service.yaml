@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name:      grafana-service
+  namespace: production-rag-system
+
+  labels:
+    app.kubernetes.io/name:       grafana-service
+    app.kubernetes.io/component:  monitoring
+    app.kubernetes.io/managed-by: kubectl
+    environment:                  production
+
+  annotations:
+    description: "ClusterIP service exposing Grafana dashboard internally"
+    owner:        "ml-platform-team"
+
+spec:
+  selector:
+    app: grafana
+
+  ports:
+    - name:       http
+      protocol:   TCP
+      port:       3000        # port other services use to reach Grafana
+      targetPort: 3000        # port Grafana listens on inside the container
+
+  type: ClusterIP
+
+  sessionAffinity: ClientIP   # sticky sessions recommended — Grafana stores
+                              # UI state (open dashboards, zoom levels) per client

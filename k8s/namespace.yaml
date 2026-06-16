@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+
+metadata:
+  name: production-rag-system
+
+  labels:
+    app.kubernetes.io/name:       production-rag-system
+    app.kubernetes.io/component:  backend
+    app.kubernetes.io/managed-by: kubectl
+    environment:                  production
+
+  annotations:
+    description: "Production-grade RAG system powered by Gemini + FAISS + Reranker + LangChain"
+    owner:        "LLM-platform-team"
+    contact:      "LLM-platform-team@company.com"

@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name:      prometheus
+  namespace: production-rag-system
+
+  labels:
+    app.kubernetes.io/name:       prometheus
+    app.kubernetes.io/component:  monitoring
+    app.kubernetes.io/managed-by: kubectl
+    environment:                  production
+
+  annotations:
+    description: "Prometheus monitoring server for the RAG system"
+    owner:        "ml-platform-team"
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+
+  strategy:
+    type: Recreate                # single replica — Recreate avoids two instances scraping simultaneously
+
+  template:
+    metadata:
+      labels:
+        app:         prometheus
+        environment: production
+
+    spec:
+      serviceAccountName: default
+
+      containers:
+        - name:  prometheus
+          image: prom/prometheus:v2.52.0    # pinned version — never use latest in production
+
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--storage.tsdb.retention.time=15d"    # keep 15 days of metrics
+            - "--web.enable-lifecycle"               # allows hot-reload via POST /-/reload
+
+          ports:
+            - name:          http
+              containerPort: 9090
+              protocol:      TCP
+
+          resources:
+            requests:
+              cpu:    "250m"
+              memory: "512Mi"
+            limits:
+              cpu:    "500m"
+              memory: "1Gi"
+
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 10
+            periodSeconds:       10
+            failureThreshold:    3
+
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 30
+            periodSeconds:       15
+            failureThreshold:    3
+
+          volumeMounts:
+            - name:      prometheus-config
+              mountPath: /etc/prometheus
+              readOnly:  true
+            - name:      prometheus-storage
+              mountPath: /prometheus
+
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config       # mount your prometheus.yml as a ConfigMap
+
+        - name: prometheus-storage
+          emptyDir: {}                    # replace with a PersistentVolumeClaim for production

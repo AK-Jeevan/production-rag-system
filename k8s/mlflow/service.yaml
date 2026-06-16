@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name:      mlflow-service
+  namespace: production-rag-system
+
+  labels:
+    app.kubernetes.io/name:       mlflow-service
+    app.kubernetes.io/component:  ml-tracking
+    app.kubernetes.io/managed-by: kubectl
+    environment:                  production
+
+  annotations:
+    description: "ClusterIP service exposing MLflow tracking server internally"
+    owner:        "ml-platform-team"
+
+spec:
+  selector:
+    app: mlflow
+
+  ports:
+    - name:       http
+      protocol:   TCP
+      port:       5000        # port other services use to reach MLflow
+      targetPort: 5000        # port MLflow listens on inside the container
+
+  type: ClusterIP
+
+  sessionAffinity: None       # stateless tracking server — no sticky sessions needed

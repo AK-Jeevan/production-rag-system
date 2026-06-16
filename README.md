@@ -64,6 +64,7 @@ The repository includes a CLI entrypoint, automated tests, containerization, and
 - Tracking: MLflow
 - Data Versioning: DVC
 - Monitoring: Prometheus, Grafana
+- Container Orchestration: Kubernetes (minikube, kind, or cloud K8s)
 - Packaging and Deployment: Docker, GitHub Actions
 - Testing: Pytest, pytest-cov, pytest-httpx, pytest-asyncio
 
@@ -73,6 +74,7 @@ The repository includes a CLI entrypoint, automated tests, containerization, and
 - `src/` - Core RAG pipeline, retrieval, generation, embeddings, ingestion, memory, monitoring, and utilities
 - `config/` - Prompt registry and other configuration assets
 - `data/` - Raw, processed, and feedback datasets managed for local development and DVC workflows
+- `k8s/` - Kubernetes manifests for the full multi-service stack (FastAPI, MLflow, Prometheus, Grafana)
 - `models/` - Persisted vector store and related model artifacts
 - `prometheus/` - Prometheus configuration
 - `tests/` - Automated test suite
@@ -180,6 +182,47 @@ Start the full stack with:
 docker compose up --build
 ```
 
+### Kubernetes Deployment
+
+This project ships with production-grade Kubernetes manifests under `k8s/`, enabling you to deploy the entire RAG stack onto any Kubernetes cluster (minikube, kind, EKS, AKS, GKE) with a single command.
+
+#### Stack Components
+
+| Component  | Manifests                     | Replicas | Persistence     | Notes                                            |
+|------------|-------------------------------|----------|-----------------|--------------------------------------------------|
+| FastAPI    | `k8s/fastapi/`                | 2        | —               | Stateless RAG API with rolling updates            |
+| MLflow     | `k8s/mlflow/`                 | 1        | 5 GiB PVC       | SQLite-backed tracking server                    |
+| Prometheus | `k8s/prometheus/`             | 1        | EmptyDir        | 15-day retention, hot-reload enabled             |
+| Grafana    | `k8s/grafana/`                | 1        | PVC             | Pre-configured dashboards, admin creds via Secret |
+| Ingress    | `k8s/ingress.yaml`            | —        | —               | NGINX Ingress with SSE streaming support         |
+| Namespace  | `k8s/namespace.yaml`          | —        | —               | `production-rag-system` logical isolation        |
+
+#### Key Kubernetes Features
+
+- **Namespace Isolation** — All resources reside in the `production-rag-system` namespace, cleanly separating the RAG stack from other workloads.
+- **Zero-Downtime Deployments** — FastAPI uses a rolling update strategy (`maxSurge: 1`, `maxUnavailable: 0`) so incoming requests are never dropped during updates.
+- **Health Probes** — Every service includes both readiness and liveness probes, ensuring the load balancer routes traffic only to healthy pods and Kubernetes auto-restarts unhealthy ones.
+- **Resource Governance** — CPU and memory requests/limits are set for every container, preventing resource starvation and noisy-neighbour issues on shared clusters.
+- **Secret Injection** — Sensitive values (`GOOGLE_API_KEY`, Grafana admin credentials) are injected via `Secret` resources rather than hard-coded environment variables or plain-text config.
+- **Persistent Storage** — MLflow and Grafana mount PersistentVolumeClaims so experiment data and dashboard configurations survive pod restarts.
+- **Optimised Ingress** — The NGINX Ingress controller is configured with streaming-friendly settings (buffering off, HTTP/1.1, long timeouts, 20 MB upload limit) to support SSE-based `/query-stream` and large document uploads.
+
+#### Deploy the Full Stack
+
+```bash
+# 1. Create the namespace and all resources
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/
+
+# 2. Verify everything is running
+kubectl get all -n production-rag-system
+
+# 3. Access the API via the Ingress (or port-forward)
+kubectl port-forward -n production-rag-system svc/fastapi-service 8000:80
+```
+
+> **Note**: Before deploying, create the required Secrets (`rag-secrets` and `grafana-secret`) with your `GOOGLE_API_KEY` and desired Grafana credentials. For a full production cluster, replace Prometheus's `emptyDir` with a PersistentVolumeClaim and configure an external database backend for MLflow.
+
 ### AWS Reference Deployment
 
 The repository is container-ready, so the most practical AWS deployment path is to run the service as a Docker image behind managed infrastructure.
@@ -243,6 +286,7 @@ If you are showing this project in an interview, the strongest talking points ar
 - You added observability with Prometheus and MLflow.
 - You used DVC to emphasize reproducibility and data governance.
 - You containerized the app and mapped it to a realistic AWS deployment path.
+- You provided a fully container-orchestrated Kubernetes deployment with rolling updates, health probes, resource governance, persistence, and ingress routing — demonstrating production readiness at scale.
 
 ## Future Improvements
 
@@ -251,6 +295,10 @@ If you are showing this project in an interview, the strongest talking points ar
 - Add S3-backed document ingestion and remote DVC storage configuration.
 - Add request authentication and rate limiting for production hardening.
 - Add system diagrams and screenshots for the README.
+- Replace Prometheus `emptyDir` storage with a PersistentVolumeClaim for metrics durability.
+- Migrate MLflow from SQLite to a managed PostgreSQL instance for reliability at scale.
+- Add HorizontalPodAutoscaler for the FastAPI service based on CPU/memory utilisation.
+- Implement a Helm chart for parameterised, environment-aware deployments.
 
 ## License
 
