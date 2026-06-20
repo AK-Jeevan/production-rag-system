@@ -80,7 +80,7 @@ jobs:
             
             if ! docker image inspect ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }} > /dev/null 2>&1; then
               echo "⚠️ Frontend image not found, building locally..."
-              docker build -t ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }} -f frontend/Dockerfile .
+              docker build -t ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }} ./frontend/
             fi
 
             echo "📝 Writing .env file..."
