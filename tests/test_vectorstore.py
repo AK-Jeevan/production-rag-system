@@ -39,8 +39,8 @@ class TestVectorStoreManager:
 
         manager.save_vector_store(mock_index)
 
-        mock_index.save_local.assert_called_once_with("models/faiss_index")
-        mock_makedirs.assert_called_once_with("models/faiss_index", exist_ok=True)
+        mock_index.save_local.assert_called_once_with("data/models/faiss_index")
+        mock_makedirs.assert_called_once_with("data/models/faiss_index", exist_ok=True)
 
     @patch("src.vectorstore.vector_store.FAISS")
     @patch("src.vectorstore.vector_store.os.path.exists", return_value=True)
@@ -54,7 +54,7 @@ class TestVectorStoreManager:
         manager.load_vector_store()
 
         mock_faiss.load_local.assert_called_once_with(
-            "models/faiss_index",
+            "data/models/faiss_index",
             embedding,
             allow_dangerous_deserialization=True,
         )
