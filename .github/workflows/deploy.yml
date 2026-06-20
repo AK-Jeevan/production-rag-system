@@ -48,7 +48,7 @@ jobs:
           host:     ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key:      ${{ secrets.EC2_SSH_KEY }}
-          source:   "docker-compose.yml,Dockerfile.frontend,frontend/"
+          source:   "docker-compose.yml,frontend/"
           target:   ${{ env.REMOTE_DIR }}
 
       # ── Step 3: Deploy on EC2 ────────────────────────────────────────────────
@@ -80,7 +80,7 @@ jobs:
             
             if ! docker image inspect ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }} > /dev/null 2>&1; then
               echo "⚠️ Frontend image not found, building locally..."
-              docker build -t ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }} -f Dockerfile.frontend .
+              docker build -t ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }} -f frontend/Dockerfile .
             fi
 
             echo "📝 Writing .env file..."

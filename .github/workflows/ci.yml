@@ -98,7 +98,7 @@ jobs:
 
       - name: Build & Push Frontend Image
         run: |
-          docker build -t ${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} -f Dockerfile.frontend .
+          docker build -t ${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} -f frontend/Dockerfile .
           docker push ${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
           docker tag ${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} ${{ env.IMAGE_NAME }}-frontend:latest
           docker push ${{ env.IMAGE_NAME }}-frontend:latest
