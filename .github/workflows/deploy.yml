@@ -43,15 +43,11 @@ jobs:
 
       # ── Step 1b: Build & Push Frontend ───────────────────────────────────────
       - name: Build & Push Frontend Image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push:    true
-          tags: |
-            ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }}
-            ${{ env.IMAGE_NAME }}-frontend:latest
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}-frontend:buildcache
-          cache-to:   type=registry,ref=${{ env.IMAGE_NAME }}-frontend:buildcache,mode=max
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }} frontend/
+          docker push ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }}
+          docker tag ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }} ${{ env.IMAGE_NAME }}-frontend:latest
+          docker push ${{ env.IMAGE_NAME }}-frontend:latest
 
       # ── Step 2: Upload docker-compose and frontend files to EC2 ─────────────
       - name: Upload docker-compose.yml to EC2
