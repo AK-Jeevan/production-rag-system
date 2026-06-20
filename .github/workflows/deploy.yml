@@ -76,7 +76,12 @@ jobs:
             docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
             echo "📥 Pulling frontend image..."
-            docker pull ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }}
+            if docker pull ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }}; then
+              echo "✅ Frontend image pulled successfully."
+            else
+              echo "⚠️ Frontend image not found on DockerHub, building locally..."
+              docker build -t ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }} -f Dockerfile.frontend .
+            fi
 
             echo "📝 Writing .env file..."
             cat > .env << EOF
