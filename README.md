@@ -348,7 +348,7 @@ kubectl logs -f -l app=fastapi -n production-rag-system
 
 # 6. Access services via port-forward (without Ingress)
 kubectl port-forward svc/fastapi-service    8000:80   -n production-rag-system
-kubectl port-forward svc/frontend-service   80:80     -n production-rag-system
+kubectl port-forward svc/frontend-service   7860:80   -n production-rag-system
 kubectl port-forward svc/mlflow-service     5000:5000 -n production-rag-system
 kubectl port-forward svc/prometheus-service 9090:9090 -n production-rag-system
 kubectl port-forward svc/grafana-service    3000:3000 -n production-rag-system
