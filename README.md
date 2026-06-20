@@ -1,6 +1,7 @@
 # Production RAG System
 
 [![RAG CI Pipeline](https://github.com/AK-Jeevan/production-rag-system/actions/workflows/ci.yml/badge.svg)](https://github.com/AK-Jeevan/production-rag-system/actions/workflows/ci.yml)
+[![Deploy to AWS EC2](https://github.com/AK-Jeevan/production-rag-system/actions/workflows/deploy.yml/badge.svg)](https://github.com/AK-Jeevan/production-rag-system/actions/workflows/deploy.yml)
 
 Production RAG System is a production-oriented Retrieval-Augmented Generation platform built with FastAPI, LangChain, FAISS, MLflow, DVC, Prometheus, and Grafana. It is designed to ingest documents, index them, retrieve relevant context, rerank results, and generate grounded answers with Google Gemini. The project is containerized, test-covered, and organized to reflect a real-world MLOps service suitable for interviews, demos, and deployment.
 
