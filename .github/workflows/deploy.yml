@@ -72,8 +72,11 @@ jobs:
             docker image prune -a -f || true
             docker system prune -f --volumes || true
 
-            echo "📥 Pulling image..."
+            echo "📥 Pulling backend image..."
             docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+            echo "📥 Pulling frontend image..."
+            docker pull ${{ env.IMAGE_NAME }}-frontend:${{ env.IMAGE_TAG }}
 
             echo "📝 Writing .env file..."
             cat > .env << EOF
