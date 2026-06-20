@@ -8,6 +8,7 @@ Production RAG System is a production-oriented Retrieval-Augmented Generation pl
 
 - End-to-end RAG pipeline with ingestion, retrieval, reranking, prompt building, generation, and conversational memory.
 - FastAPI backend with REST endpoints for query, streaming query, uploads, feedback, health, and metrics.
+- Gradio-based web UI for interactive chat and document upload.
 - MLflow tracking for model and pipeline observability.
 - DVC-based data workflow for large document assets and reproducible pipelines.
 - Monitoring stack with Prometheus and Grafana.
@@ -75,7 +76,7 @@ The repository includes a CLI entrypoint, automated tests, containerization, and
 - `config/` - Prompt registry and other configuration assets
 - `data/` - Raw, processed, and feedback datasets managed for local development and DVC workflows
 - `evaluation/` - RAGAS evaluation pipeline, datasets, and result reports
-- `k8s/` - Kubernetes manifests for the full multi-service stack (FastAPI, MLflow, Prometheus, Grafana)
+- `k8s/` - Kubernetes manifests for the full multi-service stack (FastAPI, MLflow, Prometheus, Grafana, Frontend)
 - `models/` - Persisted vector store and related model artifacts
 - `nginx/` - NGINX configuration for reverse proxy and static assets
 - `notebooks/` - Exploration and analysis notebooks
@@ -198,7 +199,8 @@ or GKE — with a single command.
 
 | Component | Manifests | Replicas | Persistence | Notes |
 |---|---|---|---|---|
-| FastAPI | `k8s/fastapi/` | 2 | — | Stateless RAG API, rolling updates, HPA-ready |
+| FastAPI | `k8s/fastapi/` | 1 | PVC for indices | Stateless RAG API, rolling updates, initContainer for permissions |
+| Frontend | `k8s/frontend/` | 1 | — | Gradio web UI, ClusterIP service on port 80 |
 | MLflow | `k8s/mlflow/` | 1 | 5 GiB PVC | SQLite-backed tracking server |
 | Prometheus | `k8s/prometheus/` | 1 | EmptyDir | 15-day retention, hot-reload via ConfigMap |
 | Grafana | `k8s/grafana/` | 1 | PVC | Pre-configured dashboards, creds via Secret |
@@ -216,12 +218,16 @@ flowchart TD
     subgraph Kubernetes Cluster — production-rag-system namespace
         ING[NGINX Ingress\nrag.local]
 
-        subgraph FastAPI Pods
-            FA1[fastapi-pod-1]
-            FA2[fastapi-pod-2]
+        subgraph FastAPI Pod
+            FA1[fastapi-pod]
+        end
+
+        subgraph Frontend Pod
+            FE[frontend-pod\nGradio UI]
         end
 
         SVC_FA[fastapi-service\nClusterIP :80]
+        SVC_FE[frontend-service\nClusterIP :80]
         SVC_ML[mlflow-service\nClusterIP :5000]
         SVC_PR[prometheus-service\nClusterIP :9090]
         SVC_GR[grafana-service\nClusterIP :3000]
@@ -230,6 +236,7 @@ flowchart TD
         PR[prometheus-pod]
         GR[grafana-pod]
 
+        PVC_FA[(FastAPI PVC\nFAISS + BM25 indices)]
         PVC_ML[(MLflow PVC\n5 GiB)]
         PVC_GR[(Grafana PVC)]
 
@@ -240,20 +247,22 @@ flowchart TD
 
     Client --> ING
     ING -->|/api/v1| SVC_FA
+    ING -->|/| SVC_FE
     ING -->|/mlflow| SVC_ML
     ING -->|/grafana| SVC_GR
 
     SVC_FA --> FA1
-    SVC_FA --> FA2
+    SVC_FE --> FE
     SVC_ML --> ML
     SVC_PR --> PR
     SVC_GR --> GR
 
+    FA1 --> PVC_FA
     ML --> PVC_ML
     GR --> PVC_GR
 
     FA1 --> SEC
-    FA2 --> SEC
+    FE --> SEC
     GR --> SEC_GR
     PR --> CM_PR
     PR -->|scrapes /api/v1/metrics| SVC_FA
@@ -288,8 +297,9 @@ injected via Kubernetes `Secret` resources rather than plain-text environment
 variables or hard-coded configuration files.
 
 **Persistent Storage**
-MLflow and Grafana mount PersistentVolumeClaims so experiment data and
-dashboard configurations survive pod restarts and rescheduling events.
+FastAPI mounts a PVC for FAISS and BM25 indices so retrieval data survives
+pod restarts. MLflow and Grafana also mount PersistentVolumeClaims so
+experiment data and dashboard configurations survive rescheduling events.
 Prometheus uses `emptyDir` by default with a note to replace it with a PVC
 for durable metrics in long-running clusters.
 
@@ -338,6 +348,7 @@ kubectl logs -f -l app=fastapi -n production-rag-system
 
 # 6. Access services via port-forward (without Ingress)
 kubectl port-forward svc/fastapi-service    8000:80   -n production-rag-system
+kubectl port-forward svc/frontend-service   80:80     -n production-rag-system
 kubectl port-forward svc/mlflow-service     5000:5000 -n production-rag-system
 kubectl port-forward svc/prometheus-service 9090:9090 -n production-rag-system
 kubectl port-forward svc/grafana-service    3000:3000 -n production-rag-system
@@ -451,6 +462,8 @@ pytest --tb=short --verbose     # concise failure output
 - Add Kubernetes NetworkPolicies to restrict inter-pod traffic.
 - Implement External Secrets Operator for AWS Secrets Manager integration on EKS.
 - Add system diagrams and Grafana dashboard screenshots to the README.
+- Add HorizontalPodAutoscaler for Frontend and FastAPI based on CPU/memory utilization.
+- Implement graceful shutdown handling for RAG pipelines to avoid dropped requests.
 
 ---
 
