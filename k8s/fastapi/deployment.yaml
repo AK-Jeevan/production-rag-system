@@ -11,7 +11,7 @@ metadata:
     environment:                  production
 
 spec:
-  replicas: 2
+  replicas: 1
 
   selector:
     matchLabels:
@@ -32,6 +32,19 @@ spec:
         environment:                  production
 
     spec:
+      initContainers:
+        - name:   sync-data
+          image:  busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /data/raw/uploads /data/feedback /data/processed /models
+              chown -R 1000:1000 /data /models
+          volumeMounts:
+            - name: rag-data
+              mountPath: /data
+
       containers:
         - name:             fastapi
           image:            wodlldd/production-rag-system:latest
@@ -49,13 +62,17 @@ spec:
                   name: rag-secrets
                   key:  GOOGLE_API_KEY
 
+          volumeMounts:
+            - name:      rag-data
+              mountPath: /app/data
+
           resources:
             requests:
-              cpu:    "250m"
-              memory: "512Mi"
+              cpu:    "500m"
+              memory: "2Gi"
             limits:
-              cpu:    "1000m"
-              memory: "1Gi"
+              cpu:    "2000m"
+              memory: "4Gi"
 
           livenessProbe:
             httpGet:
@@ -72,5 +89,10 @@ spec:
             initialDelaySeconds: 15
             periodSeconds:       10
             failureThreshold:    3
+
+      volumes:
+        - name: rag-data
+          persistentVolumeClaim:
+            claimName: rag-data-pvc
 
       restartPolicy: Always

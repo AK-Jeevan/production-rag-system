@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 class VectorStoreManager:
-    def __init__(self, embedding_model, index_path: str = "models/faiss_index"):
+    def __init__(self, embedding_model, index_path: str = "data/models/faiss_index"):
         self.embedding_model = embedding_model
         self.index_path = index_path
 

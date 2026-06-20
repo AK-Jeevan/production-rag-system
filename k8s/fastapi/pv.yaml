@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolume
+
+metadata:
+  name:      rag-data-pv
+  namespace: production-rag-system
+
+  labels:
+    app.kubernetes.io/name:       rag-data-pv
+    app.kubernetes.io/component:  storage
+    app.kubernetes.io/managed-by: kubectl
+    environment:                  production
+
+  annotations:
+    description: "PersistentVolume for RAG data (documents, FAISS index, BM25, feedback)"
+    owner:        "ml-platform-team"
+
+spec:
+  capacity:
+    storage: 10Gi
+
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: rag-data-storage
+
+  hostPath:
+    path: "/run/desktop/mnt/host/c/Users/akjee/Documents/AI/MLOps/production-rag-system/data"
+    type: DirectoryOrCreate

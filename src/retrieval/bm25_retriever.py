@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class BM25Retriever:
-    def __init__(self, save_path: str = "models/bm25_index"):
+    def __init__(self, save_path: str = "data/models/bm25_index"):
         self.save_path = save_path
         self.bm25 = None
         self.docs = []

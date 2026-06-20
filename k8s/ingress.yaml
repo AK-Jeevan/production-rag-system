@@ -17,14 +17,14 @@ metadata:
 
     # ── Ingress Controller ───────────────────────────────────────────────────
     kubernetes.io/ingress.class:             nginx
-    nginx.ingress.kubernetes.io/proxy-read-timeout:    "300"  # allow long LLM generation
-    nginx.ingress.kubernetes.io/proxy-send-timeout:    "300"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
 
-    # ── SSE / Streaming ──────────────────────────────────────────────────────
-    nginx.ingress.kubernetes.io/proxy-buffering:          "off"  # required for /query-stream SSE
+    # ── SSE / Streaming / WebSocket (Gradio) ─────────────────────────────────
+    nginx.ingress.kubernetes.io/proxy-buffering:          "off"
     nginx.ingress.kubernetes.io/proxy-http-version:       "1.1"
     nginx.ingress.kubernetes.io/proxy-request-buffering:  "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout:       "86400"  # 24h for Gradio WebSocket
+    nginx.ingress.kubernetes.io/proxy-send-timeout:       "86400"
 
     # ── Body Size ────────────────────────────────────────────────────────────
     nginx.ingress.kubernetes.io/proxy-body-size: "20m"           # allow up to 20MB uploads
@@ -63,3 +63,12 @@ spec:
                 name: grafana-service
                 port:
                   number: 3000
+
+          # ── Frontend (Gradio) ──────────────────────────────────────────────
+          - path:     /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
