@@ -3,7 +3,6 @@ kind: PersistentVolume
 
 metadata:
   name:      rag-data-pv
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       rag-data-pv
@@ -23,9 +22,9 @@ spec:
   accessModes:
     - ReadWriteOnce
 
-  persistentVolumeReclaimPolicy: Retain
+  persistentVolumeReclaimPolicy: Delete
   storageClassName: rag-data-storage
 
   hostPath:
-    path: "/run/desktop/mnt/host/c/Users/akjee/Documents/AI/MLOps/production-rag-system/data"
+    path: "/mnt/rag-data"
     type: DirectoryOrCreate

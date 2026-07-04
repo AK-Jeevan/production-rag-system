@@ -3,7 +3,6 @@ kind: Service
 
 metadata:
   name:      prometheus-service
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       prometheus-service

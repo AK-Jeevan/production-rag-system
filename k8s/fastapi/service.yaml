@@ -3,7 +3,6 @@ kind: Service
 
 metadata:
   name:      fastapi-service
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       fastapi-service

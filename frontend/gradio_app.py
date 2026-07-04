@@ -12,7 +12,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BACKEND_URL      = os.getenv("BACKEND_URL", "http://fastapi-service:80/api/v1/query")
+BACKEND_URL      = os.getenv("BACKEND_URL", "http://127.0.0.1:8000/api/v1/query")
 REQUEST_TIMEOUT  = int(os.getenv("REQUEST_TIMEOUT", "120"))   # LLM can be slow
 
 
@@ -90,10 +90,9 @@ Powered by **Gemini** · **FastAPI** · **FAISS** · **MLflow** · **Kubernetes*
 Ask any question about your ingested documents and get AI-generated answers with source references.
     """,
     examples    = [
-        "What is FastAPI?",
-        "How does the reranker improve retrieval?",
-        "What is MLflow used for in this system?",
-        "How does FAISS perform vector search?",
+        "What is AWS?",
+        "What is AWS EC2?",
+        "What is AWS Lambda?",
     ],
 )
 

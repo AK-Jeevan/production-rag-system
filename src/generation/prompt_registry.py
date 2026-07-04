@@ -61,8 +61,9 @@ ANSWER:""",
             "template": """You are a helpful AI assistant with expertise in \
 MLOps, LangChain, FastAPI, Docker, MLflow, DVC, and AWS.
 
-Answer ONLY using the provided context below.
-If the answer cannot be found in the context, say:
+Use the provided context below to answer the question.
+If the context is relevant, synthesize an answer using both the context and your knowledge.
+If the context does not contain enough information, say:
 "I could not find the answer in the knowledge base."
 
 Structure your response as:
@@ -70,7 +71,7 @@ Structure your response as:
 - Supporting details from context
 - Cite sources where possible
 
-Do NOT make up information.
+Do NOT make up information — only use the context and your general knowledge of the topic.
 
 CONTEXT:
 {context}
@@ -80,7 +81,7 @@ QUESTION:
 
 ANSWER:""",
             "created_at": "2024-03-01T00:00:00",
-            "active": True,  # ← default active version
+            "active": True,
         },
         "summary_v1": {
             "version": "v1",

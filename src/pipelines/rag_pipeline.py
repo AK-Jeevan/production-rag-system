@@ -1,6 +1,6 @@
 import time
 import logging
-from typing import Generator
+from typing import Generator, Optional
 from src.retrieval.retriever import Retriever
 from src.retrieval.reranker import Reranker
 from src.generation.prompt_builder import PromptBuilder
@@ -35,7 +35,7 @@ class RAGPipeline:
 
         logger.info("✅ RAG Pipeline ready.")
 
-    def ask(self, question: str) -> dict:
+    def ask(self, question: str, top_k: Optional[int] = None, prompt_name: Optional[str] = None) -> dict:
         """Run the full RAG pipeline for a question (non-streaming)."""
         if not question or not isinstance(question, str):
             raise ValueError("❌ Question must be a non-empty string.")

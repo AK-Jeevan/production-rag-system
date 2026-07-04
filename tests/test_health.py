@@ -13,10 +13,11 @@ def test_health_status_code():
 def test_health_response_fields():
     response = client.get("/api/v1/health")
     data = response.json()
-    assert data["status"] == "healthy"
+    assert data["status"] in ("healthy", "starting")
     assert "timestamp" in data
     assert "service" in data
     assert "version" in data
+    assert "pipeline_ready" in data
 
 
 def test_health_service_name():

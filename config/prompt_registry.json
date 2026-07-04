@@ -19,7 +19,7 @@
         "version": "v3",
         "name": "rag_v3",
         "description": "RAG prompt with structured response and source citation.",
-        "template": "You are a helpful AI assistant with expertise in MLOps, LangChain, FastAPI, Docker, MLflow, DVC, and AWS.\n\nAnswer ONLY using the provided context below.\nIf the answer cannot be found in the context, say:\n\"I could not find the answer in the knowledge base.\"\n\nStructure your response as:\n- Direct answer first\n- Supporting details from context\n- Cite sources where possible\n\nDo NOT make up information.\n\nCONTEXT:\n{context}\n\nQUESTION:\n{query}\n\nANSWER:",
+        "template": "You are a helpful AI assistant with expertise in MLOps, LangChain, FastAPI, Docker, MLflow, DVC, and AWS.\n\nUse the provided context below to answer the question.\nIf the context is relevant, synthesize an answer using both the context and your knowledge.\nIf the context does not contain enough information, say:\n\"I could not find the answer in the knowledge base.\"\n\nStructure your response as:\n- Direct answer first\n- Supporting details from context\n- Cite sources where possible\n\nDo NOT make up information \u2014 only use the context and your general knowledge of the topic.\n\nCONTEXT:\n{context}\n\nQUESTION:\n{query}\n\nANSWER:",
         "created_at": "2024-03-01T00:00:00",
         "active": true
     },

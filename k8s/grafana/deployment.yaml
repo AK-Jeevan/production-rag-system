@@ -3,7 +3,6 @@ kind: Deployment
 
 metadata:
   name:      grafana
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       grafana

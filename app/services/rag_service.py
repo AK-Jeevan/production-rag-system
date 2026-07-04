@@ -13,17 +13,29 @@ class RAGService:
         model_key: str = "flash25",
         temperature: float = 0.7,
     ):
-        try:
-            self.pipeline = RAGPipeline(
-                retrieval_top_k=retrieval_top_k,
-                rerank_top_k=rerank_top_k,
-                model_key=model_key,
-                temperature=temperature,
-            )
-            logger.info("✅ RAGService initialized successfully.")
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize RAGService: {e}")
-            raise
+        self.retrieval_top_k = retrieval_top_k
+        self.rerank_top_k = rerank_top_k
+        self.model_key = model_key
+        self.temperature = temperature
+        self.pipeline: Optional[RAGPipeline] = None
+        logger.info("✅ RAGService instance created (pipeline not yet initialized).")
+
+    def get_pipeline(self) -> RAGPipeline:
+        """Eagerly initialize and return the RAG pipeline."""
+        if self.pipeline is None:
+            try:
+                logger.info("🔄 Initializing RAG pipeline...")
+                self.pipeline = RAGPipeline(
+                    retrieval_top_k=self.retrieval_top_k,
+                    rerank_top_k=self.rerank_top_k,
+                    model_key=self.model_key,
+                    temperature=self.temperature,
+                )
+                logger.info("✅ RAG pipeline initialized successfully.")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize RAG pipeline: {e}")
+                raise
+        return self.pipeline
 
     def query(
         self,
@@ -36,7 +48,8 @@ class RAGService:
 
         try:
             logger.info(f"🔍 Processing query: {question!r}")
-            result = self.pipeline.ask(question, top_k=top_k, prompt_name=prompt_name)
+            pipeline = self.get_pipeline()
+            result = pipeline.ask(question, top_k=top_k, prompt_name=prompt_name)
             logger.info("✅ Query processed successfully.")
             return result
         except Exception as e:

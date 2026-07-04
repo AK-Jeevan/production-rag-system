@@ -77,9 +77,10 @@ class TestHealthRoute:
         ) as client:
             response = await client.get("/api/v1/health")
         assert response.status_code == 200
-        assert response.json()["status"] == "healthy"
+        assert response.json()["status"] in ("healthy", "starting")
         assert "timestamp" in response.json()
         assert "service" in response.json()
+        assert "pipeline_ready" in response.json()
 
 
 # ── /metrics ──────────────────────────────────────────────────────────────────

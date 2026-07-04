@@ -3,7 +3,6 @@ kind: Ingress
 
 metadata:
   name:      rag-ingress
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       rag-ingress

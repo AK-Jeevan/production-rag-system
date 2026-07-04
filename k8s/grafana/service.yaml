@@ -3,7 +3,6 @@ kind: Service
 
 metadata:
   name:      grafana-service
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       grafana-service

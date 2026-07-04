@@ -13,16 +13,10 @@ from src.monitoring.metrics import (
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-_rag_service: RAGService | None = None
-
-
-def get_rag_service() -> RAGService:
-    global _rag_service
-    if _rag_service is None:
-        logger.info("🔄 Initializing RAGService on first request...")
-        _rag_service = RAGService()
-        logger.info("✅ RAGService ready.")
-    return _rag_service
+# Eagerly create the RAGService instance at module load time.
+# The actual pipeline is still initialized lazily via get_pipeline(),
+# which main.py's lifespan will call during startup to avoid cold-start.
+rag_service = RAGService()
 
 
 @router.post(
@@ -37,8 +31,6 @@ async def query_rag(request: QueryRequest) -> QueryResponse:
     REQUEST_COUNT.labels(endpoint="/query").inc()
 
     try:
-        rag_service = get_rag_service()
-
         start_time = time.time()
         result = rag_service.query(request.question, top_k=request.top_k)
         QUERY_LATENCY.labels(endpoint="/query").observe(time.time() - start_time)
@@ -91,11 +83,10 @@ async def query_rag_stream(request: QueryRequest) -> StreamingResponse:
         )
 
     try:
-        rag_service = get_rag_service()
-
         start_time = time.time()
+        pipeline = rag_service.get_pipeline()
         response = StreamingResponse(
-            rag_service.pipeline.ask_stream(request.question),
+            pipeline.ask_stream(request.question),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",

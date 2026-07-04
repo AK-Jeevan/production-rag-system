@@ -3,7 +3,6 @@ kind: Service
 
 metadata:
   name:      mlflow-service
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       mlflow-service

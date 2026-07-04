@@ -3,7 +3,6 @@ kind: PersistentVolumeClaim
 
 metadata:
   name:      rag-data-pvc
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       rag-data-pvc

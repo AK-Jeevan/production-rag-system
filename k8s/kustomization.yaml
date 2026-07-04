@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: production-rag-system
+
+resources:
+  - namespace.yaml
+  - ingress.yaml
+  - fastapi/deployment.yaml
+  - fastapi/service.yaml
+  - fastapi/pv.yaml
+  - fastapi/pvc.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - grafana/deployment.yaml
+  - grafana/service.yaml
+  - grafana/pvc.yaml
+  - mlflow/deployment.yaml
+  - mlflow/service.yaml
+  - prometheus/deployment.yaml
+  - prometheus/service.yaml

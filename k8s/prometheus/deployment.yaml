@@ -3,7 +3,6 @@ kind: Deployment
 
 metadata:
   name:      prometheus
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       prometheus

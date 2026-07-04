@@ -3,7 +3,6 @@ kind: Deployment
 
 metadata:
   name:      mlflow
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       mlflow
@@ -91,7 +90,6 @@ kind: PersistentVolumeClaim
 
 metadata:
   name:      mlflow-pvc
-  namespace: production-rag-system
 
   labels:
     app.kubernetes.io/name:       mlflow

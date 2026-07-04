@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+
+metadata:
+  name:      grafana-pvc
+
+  labels:
+    app.kubernetes.io/name:       grafana-pvc
+    app.kubernetes.io/component:  monitoring
+    app.kubernetes.io/managed-by: kubectl
+    environment:                  production
+
+  annotations:
+    description: "PersistentVolumeClaim for Grafana dashboards and datasources"
+    owner:        "ml-platform-team"
+
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
