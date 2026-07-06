@@ -18,11 +18,15 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import os
     logger.info("🚀 Starting RAG API server...")
-    logger.info("🔄 Pre-warming RAG pipeline...")
-    from app.api.routes import rag_service
-    rag_service.get_pipeline()  # forces eager init instead of lazy
-    logger.info("✅ RAG pipeline pre-warmed and ready.")
+    if not os.environ.get("DISABLE_EAGER_INIT", "").lower() in ("true", "1", "yes"):
+        logger.info("🔄 Pre-warming RAG pipeline...")
+        from app.api.routes import rag_service
+        rag_service.get_pipeline()  # forces eager init instead of lazy
+        logger.info("✅ RAG pipeline pre-warmed and ready.")
+    else:
+        logger.info("⏭️ Skipping eager pipeline init (DISABLE_EAGER_INIT=true)")
     yield
     logger.info("🛑 Shutting down RAG API server...")
 
