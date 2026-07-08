@@ -6,6 +6,5 @@ mlruns/
 models/
 *.db
 .dvc/
-data/raw/
 data/processed/
 ragenv/

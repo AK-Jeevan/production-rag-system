@@ -21,7 +21,7 @@ scrape_configs:
     scrape_interval: 15s
     static_configs:
       - targets:
-          - "fastapi:8000"
+          - "fastapi-service:80"
         labels:
           env:     "development"
           service: "rag-api"

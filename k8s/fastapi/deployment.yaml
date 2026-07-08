@@ -20,8 +20,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge:       0     # no extra pods  hostNetwork prevents co-existence on same node
-      maxUnavailable: 1     # terminate old pod before starting new one
+      maxSurge:       1     # allow 1 extra pod during rollout
+      maxUnavailable: 0     # keep old pod running until new one is ready
 
   template:
     metadata:
@@ -45,18 +45,26 @@ spec:
             - name: rag-data
               mountPath: /data
 
-      # Use host network so the pod can reach the internet directly
-      # (kind cluster nodes have no outbound NAT by default).
-      # ClusterFirstWithHostNet is REQUIRED here  plain "Default" would use the
-      # node's /etc/resolv.conf for ALL lookups, breaking in-cluster service DNS
-      # (mlflow-service, grafana-service, etc.) while still allowing internet access.
-      hostNetwork: true
-      dnsPolicy:   ClusterFirstWithHostNet
+        - name:   wait-for-index
+          image:  busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for FAISS index at /data/models/faiss_index..."
+              while [ ! -d /data/models/faiss_index ]; do
+                echo "Index not found yet, sleeping 5s..."
+                sleep 5
+              done
+              echo "FAISS index found. Proceeding."
+          volumeMounts:
+            - name: rag-data
+              mountPath: /data
 
       containers:
-        - name:             fastapi
-          image:            wodlldd/production-rag-system:latest
-          imagePullPolicy:  Always     # always pull from DockerHub on every deploy
+        - name:  fastapi
+          image: wodlldd/production-rag-system:latest
+          imagePullPolicy: Always
 
           ports:
             - name:          http

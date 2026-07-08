@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  namespace: production-rag-system
+  name:      fastapi-index-build
+  labels:
+    app.kubernetes.io/name:       fastapi-index-build
+    app.kubernetes.io/component:  backend
+    app.kubernetes.io/managed-by: kubectl
+    environment:                  production
+
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: fastapi-index-build
+
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name:   seed-raw-data
+          image:  wodlldd/production-rag-system:latest
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: 0
+          command:
+            - sh
+            - -c
+            - |
+              echo "Seeding raw documents from image into PVC..."
+              cp -a /app/data/raw/. /pvc/raw/
+              echo "Raw documents seeded."
+          volumeMounts:
+            - name: rag-data
+              mountPath: /pvc
+
+      containers:
+        - name:   index-build
+          image:  wodlldd/production-rag-system:latest
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rag-secrets
+                  key:  GOOGLE_API_KEY
+          volumeMounts:
+            - name: rag-data
+              mountPath: /app/data
+          command:
+            - sh
+            - -c
+            - |
+              python -c "import os,logging;from src.ingestion.loader import DocumentLoader;from src.ingestion.chunker import DocumentChunker;from src.embeddings.embedder import EmbeddingGenerator;from src.vectorstore.vector_store import VectorStoreManager;from src.retrieval.bm25_retriever import BM25Retriever;logging.basicConfig(level=logging.INFO,format='%(asctime)s [%(levelname)s] %(name)s - %(message)s');logger=logging.getLogger(__name__);FA='data/models/faiss_index';BM='data/models/bm25_index';os.makedirs(FA,exist_ok=True);os.makedirs(BM,exist_ok=True);L=DocumentLoader(data_path='data/raw');docs=L.load_documents();logger.info('Loaded '+str(len(docs))+' docs');C=DocumentChunker(chunk_size=1000,chunk_overlap=200);chunks=C.split_documents(docs);logger.info('Created '+str(len(chunks))+' chunks');E=EmbeddingGenerator(model_key='minilm',device='cpu');emb=E.get_embedding_model();VS=VectorStoreManager(embedding_model=emb,index_path=FA);idx=VS.create_vector_store(chunks);VS.save_vector_store(idx);logger.info('FAISS saved');BR=BM25Retriever(save_path=BM);BR.build(chunks);BR.save();logger.info('BM25 saved');logger.info('Index build complete')"
+
+      volumes:
+        - name: rag-data
+          persistentVolumeClaim:
+            claimName: rag-data-pvc

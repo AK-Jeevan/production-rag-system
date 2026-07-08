@@ -23,7 +23,7 @@ spec:
     - ReadWriteOnce
 
   persistentVolumeReclaimPolicy: Delete
-  storageClassName: rag-data-storage
+  storageClassName: standard
 
   hostPath:
     path: "/mnt/rag-data"
